@@ -28,7 +28,15 @@ chmod +x ~/.config/opencode/plugins/saia/copy-saia-config.sh
 export SAIA_API_KEY=your_key_here
 ```
 
-Then start OpenCode in any project — the plugin runs automatically on startup.
+### LiteLLM Proxy (Optional)
+
+If you have a LiteLLM proxy running (e.g., with SAIA models configured), you can route all requests through it for caching, rate limiting, and fallback support:
+
+```bash
+export LITELLM_PROXY_URL=http://your-proxy:4000/v1
+```
+
+Then regenerate the config. The plugin will use the proxy URL instead of the direct SAIA API. Start OpenCode in any project — the plugin runs automatically on startup.
 
 ## Quick Start
 
@@ -50,7 +58,7 @@ Models are fetched live from the SAIA API and categorized automatically:
 
 | Category | Models | Description |
 |---|---|---|
-| **Reasoning** | Qwen3.5 397B/122B/35B/27B, Qwen3 30B Thinking, DeepSeek R1 70B | Chain-of-thought models with `set_reasoning_content_in_choice` support |
+| **Reasoning** | Qwen3.5 397B/122B/35B/27B, Qwen3 30B Thinking, DeepSeek R1 70B, GLM-4.7, Qwen3 235B | Chain-of-thought models with `can_reason: true` in config |
 | **Coder** | Qwen3 Coder 30B | Code-specialized models |
 | **Vision** | Qwen3 VL 30B, InternVL 3.5 30B | Vision-language models |
 | **Medical** | MedGemma 27B | Medical domain specialist |
@@ -60,6 +68,8 @@ Models are fetched live from the SAIA API and categorized automatically:
 | **General** | Llama 3.3 70B, Gemma 3/4, Qwen3 32B, Apertus 70B, etc. | General-purpose models |
 
 Default model: `saia/glm-4.7`
+
+Models marked with `can_reason: true` enable OpenCode's reasoning mode (chain-of-thought). Use `/model` in OpenCode to switch models.
 
 ## Rate Limits
 

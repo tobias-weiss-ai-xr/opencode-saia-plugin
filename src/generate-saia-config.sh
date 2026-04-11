@@ -10,6 +10,13 @@ MASTER_CONFIG="$SCRIPT_DIR/opencode-saia.json"
 
 SAIA_API_KEY="${SAIA_API_KEY:-}"
 
+# LiteLLM proxy support — if LITELLM_PROXY_URL is set, use the proxy instead of direct SAIA API
+LITELLM_PROXY_URL="${LITELLM_PROXY_URL:-}"
+USE_PROXY=false
+if [[ -n "$LITELLM_PROXY_URL" ]]; then
+    USE_PROXY=true
+fi
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -25,9 +32,15 @@ if [[ -z "$SAIA_API_KEY" ]]; then
     exit 1
 fi
 
+if [[ "$USE_PROXY" == "true" ]]; then
+    print_info "Using LiteLLM proxy at: $LITELLM_PROXY_URL"
+fi
+
+API_BASE_URL="${LITELLM_PROXY_URL:-https://chat-ai.academiccloud.de/v1}"
+
 print_info "Fetching latest SAIA models..."
 
-MODELS_JSON=$(curl -s --max-time 30 "https://chat-ai.academiccloud.de/v1/models" \
+MODELS_JSON=$(curl -s --max-time 30 "${API_BASE_URL}/models" \
     -H "Authorization: Bearer $SAIA_API_KEY")
 
 if [[ -z "$MODELS_JSON" ]] || ! echo "$MODELS_JSON" | jq -e '.data' >/dev/null 2>&1; then
@@ -129,6 +142,18 @@ describe() {
     esac
 }
 
+can_reason() {
+    local id="$1"
+    case "$id" in
+        *thinking*|*r1*|deepseek-r1*|qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.5-35b-a3b|qwen3.5-27b|glm-4.7|qwen3-235b-a22b|qwen3-30b-a3b-instruct-2507)
+            echo "true"
+            ;;
+        *)
+            echo "false"
+            ;;
+    esac
+}
+
 print_info "Generating opencode.json..."
 
 cat > "$MASTER_CONFIG" <<'HEADER'
@@ -175,7 +200,12 @@ echo "$MODELS_JSON" | jq -r '.data[].id' | sort | while read -r model_id; do
     else
         echo "," >> "$MASTER_CONFIG"
     fi
-    printf '        "%s": {"name": "%s"}' "$model_id" "$desc" >> "$MASTER_CONFIG"
+    reason_flag=$(can_reason "$model_id")
+    if [[ "$reason_flag" == "true" ]]; then
+        printf '        "%s": {"name": "%s", "can_reason": true}' "$model_id" "$desc" >> "$MASTER_CONFIG"
+    else
+        printf '        "%s": {"name": "%s"}' "$model_id" "$desc" >> "$MASTER_CONFIG"
+    fi
 done
 
 cat >> "$MASTER_CONFIG" <<'FOOTER'
@@ -185,6 +215,11 @@ cat >> "$MASTER_CONFIG" <<'FOOTER'
   }
 }
 FOOTER
+
+if [[ "$USE_PROXY" == "true" ]]; then
+    sed -i "s|https://chat-ai.academiccloud.de/v1|${LITELLM_PROXY_URL}|g" "$MASTER_CONFIG"
+    print_info "Configured to use LiteLLM proxy: $LITELLM_PROXY_URL"
+fi
 
 print_info "Master configuration updated: $MASTER_CONFIG ($MODEL_COUNT models)"
 
