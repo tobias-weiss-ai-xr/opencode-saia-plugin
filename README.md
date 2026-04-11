@@ -60,7 +60,7 @@ Models are fetched live from the SAIA API and categorized automatically:
 |---|---|---|
 | **Reasoning** | Qwen3.5 397B/122B/35B/27B, Qwen3 30B Thinking, DeepSeek R1 70B, GLM-4.7, Qwen3 235B | Chain-of-thought models with `can_reason: true` in config |
 | **Coder** | Qwen3 Coder 30B | Code-specialized models |
-| **Vision** | Qwen3 VL 30B, InternVL 3.5 30B | Vision-language models |
+| **Vision** | Qwen3 VL 30B, InternVL 3.5 30B, Qwen3 Omni 30B | Vision-language models with `attachment: true` for image/file input |
 | **Medical** | MedGemma 27B | Medical domain specialist |
 | **Research** | Teuken 7B, SauerkrautLM 70B | German/European research models |
 | **Agentic** | GLM-4.7, Devstral 2 123B | Strong tool-use and agentic coding |
@@ -70,6 +70,18 @@ Models are fetched live from the SAIA API and categorized automatically:
 Default model: `saia/glm-4.7`
 
 Models marked with `can_reason: true` enable OpenCode's reasoning mode (chain-of-thought). Use `/model` in OpenCode to switch models.
+
+### Model Properties
+
+Each model in the generated config may include these special fields:
+
+| Field | Values | Description |
+|---|---|---|
+| `can_reason` | `true` | Enables chain-of-thought reasoning mode in OpenCode |
+| `attachment` | `true` | Allows image/file input (vision models only) |
+| `limit.context` | `32768` / `128000` / `131072` | Context window size in tokens |
+
+Most models have 128k context windows. Vision, medical, and research models use 32k.
 
 ## Rate Limits
 
