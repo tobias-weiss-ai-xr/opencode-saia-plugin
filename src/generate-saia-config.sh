@@ -154,6 +154,36 @@ can_reason() {
     esac
 }
 
+get_context_window() {
+    local id="$1"
+    case "$id" in
+        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.5-35b-a3b|qwen3.5-27b|qwen3-235b-a22b|qwen3-32b|mistral-large-3-675b-instruct-2512|glm-4.7|llama-3.3-70b-instruct|llama-3.1-8b-instruct|llama-3.1-sauerkrautlm-70b-instruct|meta-llama-3.1-8b-instruct|apertus-70b-instruct-2509|devstral-2-123b-instruct-2512|openai-gpt-oss-120b|deepseek-r1-distill-llama-70b)
+            echo "128000"
+            ;;
+        gemma-3-27b-it|gemma-4-31b-it|qwen3-coder-30b-a3b-instruct|qwen3-30b-a3b-instruct-2507|qwen3-30b-a3b-thinking-2507)
+            echo "131072"
+            ;;
+        qwen3-vl-30b-a3b-instruct|internvl3.5-30b-a3b|medgemma-27b-it|qwen3-omni-30b-a3b-instruct|teuken-7b-instruct-research)
+            echo "32768"
+            ;;
+        *)
+            echo "128000"
+            ;;
+    esac
+}
+
+supports_attachment() {
+    local id="$1"
+    case "$id" in
+        qwen3-vl-30b-a3b-instruct|internvl3.5-30b-a3b|qwen3-omni-30b-a3b-instruct)
+            echo "true"
+            ;;
+        *)
+            echo "false"
+            ;;
+    esac
+}
+
 print_info "Generating opencode.json..."
 
 cat > "$MASTER_CONFIG" <<'HEADER'
@@ -200,12 +230,17 @@ echo "$MODELS_JSON" | jq -r '.data[].id' | sort | while read -r model_id; do
     else
         echo "," >> "$MASTER_CONFIG"
     fi
+
     reason_flag=$(can_reason "$model_id")
-    if [[ "$reason_flag" == "true" ]]; then
-        printf '        "%s": {"name": "%s", "can_reason": true}' "$model_id" "$desc" >> "$MASTER_CONFIG"
-    else
-        printf '        "%s": {"name": "%s"}' "$model_id" "$desc" >> "$MASTER_CONFIG"
-    fi
+    attach_flag=$(supports_attachment "$model_id")
+    ctx=$(get_context_window "$model_id")
+
+    fields="\"name\": \"$desc\""
+    [[ "$reason_flag" == "true" ]] && fields="$fields, \"can_reason\": true"
+    [[ "$attach_flag" == "true" ]] && fields="$fields, \"attachment\": true"
+    fields="$fields, \"limit\": {\"context\": $ctx}"
+
+    printf '        "%s": {%s}' "$model_id" "$fields" >> "$MASTER_CONFIG"
 done
 
 cat >> "$MASTER_CONFIG" <<'FOOTER'
