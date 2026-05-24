@@ -80,6 +80,7 @@ Each model in the generated config may include these special fields:
 | `can_reason` | `true` | Enables chain-of-thought reasoning mode in OpenCode |
 | `attachment` | `true` | Allows image/file input (vision models only) |
 | `limit.context` | `32768` / `128000` / `131072` | Context window size in tokens |
+| `limit.output` | `4096` / `8192` / `16384` / `32768` | Max output tokens per model |
 
 Most models have 128k context windows. Vision, medical, and research models use 32k.
 

@@ -184,6 +184,33 @@ supports_attachment() {
     esac
 }
 
+get_output_window() {
+    local id="$1"
+    case "$id" in
+        qwen3.5-397b-a17b|qwen3.5-122b-a10b|mistral-large-3-675b-instruct-2512|qwen3-235b-a22b)
+            echo "32768"
+            ;;
+        qwen3.5-35b-a3b|qwen3.5-27b|glm-4.7|devstral-2-123b-instruct-2512|qwen3-32b|qwen3-coder-30b-a3b-instruct|deepseek-r1-distill-llama-70b)
+            echo "16384"
+            ;;
+        qwen3-30b-a3b-instruct-2507|qwen3-30b-a3b-thinking-2507)
+            echo "16384"
+            ;;
+        gemma-3-27b-it|gemma-4-31b-it|llama-3.3-70b-instruct|apertus-70b-instruct-2509|openai-gpt-oss-120b)
+            echo "8192"
+            ;;
+        internvl3.5-30b-a3b|qwen3-vl-30b-a3b-instruct|qwen3-omni-30b-a3b-instruct|medgemma-27b-it)
+            echo "4096"
+            ;;
+        teuken-7b-instruct-research|llama-3.1-sauerkrautlm-70b-instruct|llama-3.1-8b-instruct|meta-llama-3.1-8b-instruct)
+            echo "4096"
+            ;;
+        *)
+            echo "8192"
+            ;;
+    esac
+}
+
 print_info "Generating opencode.json..."
 
 cat > "$MASTER_CONFIG" <<'HEADER'
@@ -234,11 +261,12 @@ echo "$MODELS_JSON" | jq -r '.data[].id' | sort | while read -r model_id; do
     reason_flag=$(can_reason "$model_id")
     attach_flag=$(supports_attachment "$model_id")
     ctx=$(get_context_window "$model_id")
+    out=$(get_output_window "$model_id")
 
     fields="\"name\": \"$desc\""
     [[ "$reason_flag" == "true" ]] && fields="$fields, \"can_reason\": true"
     [[ "$attach_flag" == "true" ]] && fields="$fields, \"attachment\": true"
-    fields="$fields, \"limit\": {\"context\": $ctx}"
+    fields="$fields, \"limit\": {\"context\": $ctx, \"output\": $out}"
 
     printf '        "%s": {%s}' "$model_id" "$fields" >> "$MASTER_CONFIG"
 done
