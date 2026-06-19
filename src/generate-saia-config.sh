@@ -113,6 +113,7 @@ describe() {
         qwen3.5-122b-a10b)       echo "Qwen3.5 122B MoE (128k ctx) — Strong reasoning, fast" ;;
         qwen3.5-35b-a3b)         echo "Qwen3.5 35B MoE (128k ctx) — Fast reasoning" ;;
         qwen3.5-27b)             echo "Qwen3.5 27B Dense (128k ctx) — Efficient reasoning" ;;
+        qwen3.6-35b-a3b)         echo "Qwen3.6 35B MoE — Vision, reasoning, agentic coding" ;;
         qwen3-235b-a22b)         echo "Qwen3 235B MoE (128k ctx) — Large context, strong generalist" ;;
         qwen3-32b)               echo "Qwen3 32B Dense (128k ctx) — Balanced" ;;
         qwen3-coder-30b-a3b-instruct) echo "Qwen3 Coder 30B — Code-specialized" ;;
@@ -145,7 +146,7 @@ describe() {
 can_reason() {
     local id="$1"
     case "$id" in
-        *thinking*|*r1*|deepseek-r1*|qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.5-35b-a3b|qwen3.5-27b|glm-4.7|qwen3-235b-a22b|qwen3-30b-a3b-instruct-2507)
+        *thinking*|*r1*|deepseek-r1*|qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.5-35b-a3b|qwen3.5-27b|qwen3.6-35b-a3b|glm-4.7|qwen3-235b-a22b|qwen3-30b-a3b-instruct-2507)
             echo "true"
             ;;
         *)
@@ -157,7 +158,7 @@ can_reason() {
 get_context_window() {
     local id="$1"
     case "$id" in
-        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.5-35b-a3b|qwen3.5-27b|qwen3-235b-a22b|qwen3-32b|mistral-large-3-675b-instruct-2512|glm-4.7|llama-3.3-70b-instruct|llama-3.1-8b-instruct|llama-3.1-sauerkrautlm-70b-instruct|meta-llama-3.1-8b-instruct|apertus-70b-instruct-2509|devstral-2-123b-instruct-2512|openai-gpt-oss-120b|deepseek-r1-distill-llama-70b)
+        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.5-35b-a3b|qwen3.5-27b|qwen3.6-35b-a3b|qwen3-235b-a22b|qwen3-32b|mistral-large-3-675b-instruct-2512|glm-4.7|llama-3.3-70b-instruct|llama-3.1-8b-instruct|llama-3.1-sauerkrautlm-70b-instruct|meta-llama-3.1-8b-instruct|apertus-70b-instruct-2509|devstral-2-123b-instruct-2512|openai-gpt-oss-120b|deepseek-r1-distill-llama-70b)
             echo "128000"
             ;;
         gemma-3-27b-it|gemma-4-31b-it|qwen3-coder-30b-a3b-instruct|qwen3-30b-a3b-instruct-2507|qwen3-30b-a3b-thinking-2507)
@@ -175,7 +176,7 @@ get_context_window() {
 supports_attachment() {
     local id="$1"
     case "$id" in
-        qwen3-vl-30b-a3b-instruct|internvl3.5-30b-a3b|qwen3-omni-30b-a3b-instruct)
+        qwen3-vl-30b-a3b-instruct|internvl3.5-30b-a3b|qwen3.6-35b-a3b|qwen3-omni-30b-a3b-instruct)
             echo "true"
             ;;
         *)
@@ -187,7 +188,7 @@ supports_attachment() {
 get_output_window() {
     local id="$1"
     case "$id" in
-        qwen3.5-397b-a17b|qwen3.5-122b-a10b|mistral-large-3-675b-instruct-2512|qwen3-235b-a22b)
+        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.6-35b-a3b|mistral-large-3-675b-instruct-2512|qwen3-235b-a22b)
             echo "32768"
             ;;
         qwen3.5-35b-a3b|qwen3.5-27b|glm-4.7|devstral-2-123b-instruct-2512|qwen3-32b|qwen3-coder-30b-a3b-instruct|deepseek-r1-distill-llama-70b)
