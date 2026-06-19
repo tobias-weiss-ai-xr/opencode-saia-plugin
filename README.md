@@ -20,6 +20,7 @@ git clone https://codeberg.org/graphwiz-ai/opencode-saia-plugin.git
 cd opencode-saia-plugin
 
 # Install as OpenCode plugin
+mkdir -p ~/.config/opencode/plugins
 cp -r src ~/.config/opencode/plugins/saia
 chmod +x ~/.config/opencode/plugins/saia/generate-saia-config.sh
 chmod +x ~/.config/opencode/plugins/saia/copy-saia-config.sh
