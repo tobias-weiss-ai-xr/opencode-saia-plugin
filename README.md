@@ -25,8 +25,29 @@ cp -r src ~/.config/opencode/plugins/saia
 chmod +x ~/.config/opencode/plugins/saia/generate-saia-config.sh
 chmod +x ~/.config/opencode/plugins/saia/copy-saia-config.sh
 
-# Set your API key
-export SAIA_API_KEY=your_key_here
+# Set your API key (Linux/macOS - permanent)
+echo 'export SAIA_API_KEY="your_key_here"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Windows PowerShell:**
+```powershell
+git clone https://codeberg.org/graphwiz-ai/opencode-saia-plugin.git
+cd opencode-saia-plugin
+cp -r src $HOME\.config\opencode\plugins\saia
+[Environment]::SetEnvironmentVariable("SAIA_API_KEY", "your_key_here", "User")
+```
+
+### Quick Install (One-liner)
+
+**Linux/macOS:**
+```bash
+curl -fsSL https://codeberg.org/graphwiz-ai/opencode-saia-plugin/raw/branch/master/install.sh | bash
+```
+
+**Windows PowerShell:**
+```powershell
+Invoke-WebRequest -Uri "https://codeberg.org/graphwiz-ai/opencode-saia-plugin/raw/branch/master/install.ps1" -UseBasicParsing | Invoke-Expression
 ```
 
 ### LiteLLM Proxy (Optional)

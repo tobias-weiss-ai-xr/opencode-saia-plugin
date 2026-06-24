@@ -235,6 +235,7 @@ cat > "$MASTER_CONFIG" <<'HEADER'
     "question": "allow",
     "mymcp_*": "ask"
   },
+  "formatter": {},
   "model": "saia/glm-4.7",
   "provider": {
     "saia": {
@@ -265,6 +266,7 @@ echo "$MODELS_JSON" | jq -r '.data[].id' | sort | while read -r model_id; do
     out=$(get_output_window "$model_id")
 
     fields="\"name\": \"$desc\""
+    fields="$fields, \"options\": {\"enable-tools\": true, \"enable-auto-tool-choice\": true, \"tool-call-parser\": \"openai\"}"
     [[ "$reason_flag" == "true" ]] && fields="$fields, \"can_reason\": true"
     [[ "$attach_flag" == "true" ]] && fields="$fields, \"attachment\": true"
     fields="$fields, \"limit\": {\"context\": $ctx, \"output\": $out}"
