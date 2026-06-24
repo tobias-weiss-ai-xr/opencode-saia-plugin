@@ -18,37 +18,43 @@ export default async ({ directory }: { directory?: string }) => {
   
   // Check if scripts exist
   if (!existsSync(generateScript)) {
-    console.log("[SAIA Plugin] Generate script not found at:", generateScript)
+    console.error("[SAIA Plugin] ✗ Generate script not found:", generateScript)
+    console.error("[SAIA Plugin] → Verify plugin installation: ~/.config/opencode/plugins/saia/")
     return {}
   }
-  
+
   if (!existsSync(copyScript)) {
-    console.log("[SAIA Plugin] Copy script not found at:", copyScript)
+    console.error("[SAIA Plugin] ✗ Copy script not found:", copyScript)
+    console.error("[SAIA Plugin] → Verify plugin installation: ~/.config/opencode/plugins/saia/")
     return {}
   }
   
   try {
-    // Step 1: Update master configuration with latest models
-    console.log("[SAIA Plugin] Running generate script to update master configuration...")
-    execSync(generateScript, { 
+    console.error("[SAIA Plugin] → Running generate script...")
+    execSync(generateScript, {
       cwd: pluginDir,
       stdio: "inherit"
     })
   } catch (error) {
-    console.log("[SAIA Plugin] Failed to generate SAIA configuration:", error)
+    console.error("[SAIA Plugin] ✗ Failed to generate:", (error as Error).message)
+    console.error("[SAIA Plugin] → Check SAIA_API_KEY and network access")
+    return {}
   }
-  
+
   try {
-    // Step 2: Copy to current directory
-    console.log("[SAIA Plugin] Running copy script to current directory...")
-    execSync(copyScript, { 
+    console.error("[SAIA Plugin] → Copying configuration...")
+    execSync(copyScript, {
       cwd: directory || process.cwd(),
       stdio: "inherit"
     })
-    console.log("[SAIA Plugin] SAIA configuration updated and copied successfully")
+    console.error("[SAIA Plugin] ✓ Configuration updated")
   } catch (error) {
-    console.log("[SAIA Plugin] Failed to copy SAIA configuration:", error)
+    console.error("[SAIA Plugin] ✗ Failed to copy:", (error as Error).message)
+    console.error("[SAIA Plugin] → Check directory permissions")
+    return {}
   }
+
+  console.error("[SAIA Plugin] ✓ SAIA plugin initialized successfully")
   
   return {}
 }

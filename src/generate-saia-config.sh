@@ -282,6 +282,12 @@ cat >> "$MASTER_CONFIG" <<'FOOTER'
 }
 FOOTER
 
+if ! jq '.' "$MASTER_CONFIG" >/dev/null 2>&1; then
+    print_error "Generated JSON is invalid - aborting"
+    rm -f "$MASTER_CONFIG"
+    exit 1
+fi
+
 if [[ "$USE_PROXY" == "true" ]]; then
     sed -i "s|https://chat-ai.academiccloud.de/v1|${LITELLM_PROXY_URL}|g" "$MASTER_CONFIG"
     print_info "Configured to use LiteLLM proxy: $LITELLM_PROXY_URL"
