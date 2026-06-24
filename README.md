@@ -76,7 +76,7 @@ Restart OpenCode after generating the config.
 
 ## Available Models
 
-Models are fetched live from the SAIA API and categorized automatically:
+The plugin includes 27 SAIA models, fetched live from the API and categorized automatically:
 
 | Category | Models | Description |
 |---|---|---|
@@ -134,12 +134,22 @@ Metrics to track: `time_total` (latency), `usage.prompt_tokens`, `usage.completi
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---|---|
-| Plugin not creating `opencode.json` | Check `ls ~/.config/opencode/plugins/saia/` and `echo $SAIA_API_KEY` |
-| Script fails | Verify API key, network access to `chat-ai.academiccloud.de`, `curl` and `jq` installed |
-| 429 errors | Rate limit hit — wait or check dashboard |
-| Models not showing in OpenCode | Restart OpenCode after config generation |
+| Problem | Diagnosis | Fix |
+|---|---|---|
+| Plugin not creating `opencode.json` | Script not found or not executable | Run `ls ~/.config/opencode/plugins/saia/` and `echo $SAIA_API_KEY` |
+| Script fails with API error | Invalid key or network issue | Verify API key at [SAIA dashboard](https://chat-ai.academiccloud.de), check firewall |
+| `curl: command not found` | Missing `curl` | Install: Linux `sudo apt install curl` or macOS `brew install curl` |
+| `jq: command not found` | Missing `jq` | Install: Linux `sudo apt install jq` or macOS `brew install jq` |
+| 429 errors | Rate limit exhausted | Wait or check dashboard quota |
+| Models not showing in OpenCode | Outdated config | Restart OpenCode after running `generate-saia-config.sh` |
+| Plugin not loading | Wrong plugin registration | Check `~/.config/opencode/opencode.json` has `"plugin": ["saia"]` |
+
+## Environment Variables
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `SAIA_API_KEY` | Yes | API key for GWDG Chat AI service |
+| `LITELLM_PROXY_URL` | No | Optional LiteLLM proxy URL for caching/rate limiting |
 
 ## Files
 
@@ -148,7 +158,11 @@ Metrics to track: `time_total` (latency), `usage.prompt_tokens`, `usage.completi
 | `src/saia.ts` | OpenCode plugin — runs on startup |
 | `src/generate-saia-config.sh` | Fetches models from API, generates master config |
 | `src/copy-saia-config.sh` | Copies master config to project directory |
-| `src/opencode-saia.json` | Master configuration (generated) |
+| `src/opencode-saia.json` | Master configuration (generated, 27 models) |
+| `install.sh` | One-click installer for Linux/macOS |
+| `install.ps1` | One-click installer for Windows PowerShell |
+| `opencode.json.example` | Example opencode.json for reference |
+| `LICENSE` | MIT License |
 
 ## License
 
