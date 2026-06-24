@@ -1,4 +1,3 @@
-import type { Plugin } from "./index"
 import { execSync } from "child_process"
 import { existsSync } from "fs"
 import { join, dirname } from "path"
@@ -9,7 +8,7 @@ import { join, dirname } from "path"
  * Automatically updates and copies SAIA configuration when OpenCode starts.
  */
 
-export const SAIAPlugin: Plugin = async ({ directory }) => {
+export default async ({ directory }: { directory?: string }) => {
   console.log("[SAIA Plugin] Updating SAIA configuration...")
   
   // Get the plugin directory from the current file location

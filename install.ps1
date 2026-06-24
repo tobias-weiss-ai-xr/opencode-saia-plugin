@@ -22,7 +22,7 @@ New-Item -ItemType Directory -Force -Path $configDir | Out-Null
 if (-not (Test-Path $configFile)) {
   $config = @{
     '$schema' = "https://opencode.ai/config.json"
-    plugin = @("./saia/saia")
+    plugin = @("saia")
   } | ConvertTo-Json -Depth 10
   $config | Set-Content $configFile -Encoding UTF8
   Write-Host "✓ Created $configFile with plugin registration"

@@ -16,12 +16,12 @@ chmod +x "$TARGET_DIR/generate-saia-config.sh"
 chmod +x "$TARGET_DIR/copy-saia-config.sh"
 
 CONFIG_FILE="${HOME}/.config/opencode/opencode.json"
- if [ ! -f "$CONFIG_FILE" ]; then
-   mkdir -p "$(dirname "$CONFIG_FILE")"
-   cat > "$CONFIG_FILE" <<'EOF'
+if [ ! -f "$CONFIG_FILE" ]; then
+  mkdir -p "$(dirname "$CONFIG_FILE")"
+  cat > "$CONFIG_FILE" <<'EOF'
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["./saia/saia"]
+  "plugin": ["saia"]
 }
 EOF
    echo "✓ Created $CONFIG_FILE with plugin registration"
