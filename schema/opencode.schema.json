@@ -119,6 +119,10 @@
           "type": "boolean",
           "description": "Whether this model supports image/file attachment"
         },
+        "alias": {
+          "type": "boolean",
+          "description": "Whether this is a model group alias (not a real model)"
+        },
         "metadata": {
           "type": "object",
           "description": "Additional model metadata for guidance",

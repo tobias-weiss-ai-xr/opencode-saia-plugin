@@ -468,6 +468,32 @@ echo "$MODELS_JSON" | jq -r '.data[].id' | sort | while read -r model_id; do
     printf '        "%s": {%s}' "$model_id" "$fields" >> "$MASTER_CONFIG"
 done
 
+# Add model group aliases for easy discovery
+ALIASES=(
+    "best-for-coding:qwen3-coder-30b-a3b-instruct"
+    "best-for-reasoning:deepseek-r1-distill-llama-70b"
+    "best-for-vision:internvl3.5-30b-a3b"
+    "best-for-agentic:glm-4.7"
+    "best-quality:qwen3.5-397b-a17b"
+    "fastest:llama-3.1-8b-instruct"
+    "budget:llama-3.1-8b-instruct"
+    "best-german:sauerkrautlm-70b"
+)
+
+for alias_entry in "${ALIASES[@]}"; do
+    alias_name="${alias_entry%%:*}"
+    alias_target="${alias_entry#*:}"
+
+    # Only include alias if the target model exists in current profile
+    if echo "$MODELS_JSON" | jq -r '.data[].id' | grep -qx "$alias_target"; then
+        if include_in_profile "$alias_target" "$PROFILE_CONFIG" 2>/dev/null; then
+            echo "," >> "$MASTER_CONFIG"
+            alias_desc="Alias for $alias_target"
+            printf '        "%s": {"name": "%s", "alias": true, "options": {"enable-tools": true, "enable-auto-tool-choice": true, "tool-call-parser": "openai"}}' "$alias_name" "$alias_desc" >> "$MASTER_CONFIG"
+        fi
+    fi
+done
+
 cat >> "$MASTER_CONFIG" <<'FOOTER'
 
       }

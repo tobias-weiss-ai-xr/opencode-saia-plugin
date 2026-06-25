@@ -97,6 +97,25 @@ Default model: `saia/glm-4.7`
 
 Models marked with `can_reason: true` enable OpenCode's reasoning mode (chain-of-thought). Use `/model` in OpenCode to switch models.
 
+### Model Aliases
+
+The plugin generates convenience aliases for quick model selection without memorizing IDs:
+
+| Alias | Points To | Use Case |
+|---|---|---|
+| `saia/best-for-coding` | qwen3-coder-30b | Code-specialized tasks |
+| `saia/best-for-reasoning` | deepseek-r1-70b | Complex reasoning, math, planning |
+| `saia/best-for-vision` | internvl3.5-30b | Image analysis, multimodal |
+| `saia/best-for-agentic` | glm-4.7 | Agentic coding, tool use |
+| `saia/best-quality` | qwen3.5-397b | Highest quality output |
+| `saia/fastest` | llama-3.1-8b | Fastest response time |
+| `saia/budget` | llama-3.1-8b | Lowest cost |
+| `saia/best-german` | sauerkrautlm-70b | German language tasks |
+
+Usage in OpenCode: `/model saia/best-for-coding`
+
+Aliases are profile-aware: only included if the target model is available in the current profile.
+
 ### Model Properties
 
 Each model in the generated config may include these special fields:
