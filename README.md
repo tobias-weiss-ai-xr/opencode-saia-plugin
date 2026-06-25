@@ -195,21 +195,48 @@ This fork (Codeberg/graphwiz-ai) is based on the original SAIA plugin by jlewis/
 
 **Best Strategy:** Use this fork for production (richer features) → monitor GitLab for architectural improvements (native plugin, auto-refresh). For bleeding-edge features (memory, skills, optimization), switch to `bleedingEdge` branch.
 
+## Configuration Validation
+
+The plugin includes JSON schema validation to catch configuration errors early. Validate your `opencode.json` before using it:
+
+```bash
+# Validate current project configuration
+bash src/validate-config.sh opencode.json
+
+# Validate global OpenCode config
+bash src/validate-config.sh ~/.config/opencode/opencode.json
+```
+
+**Requirements:**
+- `ajv-cli` (recommended): `npm install -g ajv-cli` (full schema validation)
+- `jq` (fallback): `apt install jq` or `brew install jq` (basic structure checks)
+
+**Features:**
+- Validates required fields (`provider`, `model`, `apiKey`)
+- Checks model format (`saia/` prefix)
+- Validates API key reference (must reference `SAIA_API_KEY`)
+- Checks model config structure (`name`, `options`, `limit`)
+- Validates new metadata fields (`cost_per_1k_tokens`, `estimated_latency`, `recommended_for`)
+
+If validation fails, the script will show detailed error messages to help you fix the configuration issues.
+
 ## Files
 
 | File | Purpose |
 |---|---|
 | `src/saia.ts` | OpenCode plugin — master: shell wrapper; `bleedingEdge`: native Node.js plugin |
 | `src/saia-memory.ts` | Memory layer utilities (`bleedingEdge` only) - caching, usage tracking, metrics |
+| `src/validate-config.sh` | JSON schema validator for opencode.json files |
 | `src/generate-saia-config.sh` | Fetches models from API, generates master config (master branch) |
 | `src/copy-saia-config.sh` | Copies master config to project directory (master branch) |
-| `src/opencode-saia.json` | Master configuration (generated, 27 models) |
+| `src/opencode-saia.json` | Master configuration (generated, 27 models with metadata) |
 | `.opencode/skills/` | SAIA skills directory (`bleedingEdge` only) |
 | `.opencode/skills/saia-refresh.md` | Force-refresh model list skill |
 | `.opencode/skills/saia-health.md` | SAIA API health check skill |
 | `.opencode/skills/saia-optimize.md` | Model optimization / recommendation skill |
 | `.opencode/skills/saia-switch-profile.md` | Profile switcher skill (production/dev/budget) |
 | `.opencode/skills/saia-memory-clear.md` | Clear all SAIA memory skill |
+| `schema/opencode.schema.json` | JSON schema for configuration validation |
 | `package.json` | Node.js dependencies (`bleedingEdge` only) |
 | `tsconfig.json` | TypeScript configuration (`bleedingEdge` only) |
 | `install.sh/install.ps1` | One-click installers (Linux/macOS/Windows) |
