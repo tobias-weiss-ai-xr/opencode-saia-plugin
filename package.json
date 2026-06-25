@@ -1,0 +1,10 @@
+{
+  "name": "saia-native-plugin",
+  "version": "0.2.0-bleedingedge",
+  "description": "SAIA native plugin for OpenCode with caching and skills",
+  "type": "module",
+  "main": "./src/saia.ts",
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  }
+}
