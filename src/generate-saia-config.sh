@@ -17,6 +17,37 @@ if [[ -n "$LITELLM_PROXY_URL" ]]; then
     USE_PROXY=true
 fi
 
+# Profile support — select different model sets for production/dev/budget
+SAIA_PROFILE="${SAIA_PROFILE:-production}"
+PROFILE_CONFIG=""
+
+if [[ "$SAIA_PROFILE" != "production" ]]; then
+    MASTER_CONFIG="$SCRIPT_DIR/opencode-saia-${SAIA_PROFILE}.json"
+fi
+configure_profile() {
+    local profile="${1:-production}"
+    case "$profile" in
+        production)
+            print_info "Using production profile (highest quality models)"
+            PROFILE_CONFIG="production"
+            ;;
+        dev|development)
+            print_info "Using development profile (balanced models, faster responses)"
+            PROFILE_CONFIG="development"
+            ;;
+        budget)
+            print_info "Using budget profile (cheapest, fastest models)"
+            PROFILE_CONFIG="budget"
+            ;;
+        *)
+            print_error "Unknown profile: $profile. Valid options: production, development, budget"
+            exit 1
+            ;;
+    esac
+}
+
+configure_profile "$SAIA_PROFILE"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -161,6 +192,103 @@ get_recommended_for() {
     esac
 }
 
+include_in_profile() {
+    local id="$1"
+    local profile="$2"
+
+    case "$profile" in
+        production)
+            include_in_profile_production "$id"
+            ;;
+        development|dev)
+            include_in_profile_development "$id"
+            ;;
+        budget)
+            include_in_profile_budget "$id"
+            ;;
+        *)
+            return 0 # unknown profile, include all
+            ;;
+    esac
+}
+
+include_in_profile_production() {
+    local id="$1"
+    local cat=$(categorize "$id")
+
+    # Production: Highest quality models for critical work
+    case "$id" in
+        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3-235b-a22b|mistral-large-3-675b|glm-4.7|devstral-2*)
+            echo "true"
+            ;;
+        deepseek-r1*|*thinking*)
+            echo "true"
+            ;;
+        *coder*|qwen3-vl*|internvl*)
+            echo "true"
+            ;;
+        *)
+            echo "false"
+            ;;
+    esac
+}
+
+include_in_profile_development() {
+    local id="$1"
+    local cat=$(categorize "$id")
+
+    # Development: Balanced models for active development
+    case "$id" in
+        qwen3.5-35b-a3b|qwen3-5-27b|qwen3-32b|llama-3.3-70b|gemma-3-27b*|gemma-4-31b*)
+            echo "true"
+            ;;
+        qwen3-coder*|glm-4.7)
+            echo "true"
+            ;;
+        *vl-*|*vision*|internvl*)
+            echo "true"
+            ;;
+        *)
+            echo "false"
+            ;;
+    esac
+}
+
+include_in_profile_budget() {
+    local id="$1"
+
+    # Budget: Cheapest and fastest models only
+    case "$id" in
+        llama-3.1-8b*|teuken-7b*|qwen3-30b-a3b-instruct*)
+            echo "true"
+            ;;
+        gemma-3-27b*)
+            echo "true"
+            ;;
+        *)
+            echo "false"
+            ;;
+    esac
+}
+
+get_profile_default_model() {
+    local profile="$1"
+    case "$profile" in
+        production)
+            echo "glm-4.7"
+            ;;
+        development|dev)
+            echo "qwen3.5-35b-a3b"
+            ;;
+        budget)
+            echo "llama-3.1-8b-instruct"
+            ;;
+        *)
+            echo "glm-4.7"
+            ;;
+    esac
+}
+
 describe() {
     local id="$1"
     local cat="$2"
@@ -292,7 +420,7 @@ cat > "$MASTER_CONFIG" <<'HEADER'
     "mymcp_*": "ask"
   },
   "formatter": {},
-  "model": "saia/glm-4.7",
+  "model": "saia/$(get_profile_default_model "$PROFILE_CONFIG")",
   "provider": {
     "saia": {
       "npm": "@ai-sdk/openai-compatible",
@@ -307,6 +435,12 @@ HEADER
 FIRST=true
 echo "$MODELS_JSON" | jq -r '.data[].id' | sort | while read -r model_id; do
     [[ -z "$model_id" ]] && continue
+
+    # Filter models based on profile
+    if ! include_in_profile "$model_id" "$PROFILE_CONFIG"; then
+        continue
+    fi
+
     cat=$(categorize "$model_id")
     desc=$(describe "$model_id" "$cat")
 
