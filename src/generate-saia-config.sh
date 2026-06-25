@@ -105,6 +105,62 @@ categorize() {
     esac
 }
 
+# --- Model metadata functions ---
+# Provides additional metadata for model selection guidance
+
+get_cost_per_1k_tokens() {
+    local id="$1"
+    case "$id" in
+        *8b*)                     echo "0.003" ;;   # ~$3/1M (small models)
+        *7b*|gemma-3-27b*)        echo "0.006" ;;   # ~$6/1M
+        *31b*|*32b*|teuken*)      echo "0.012" ;;   # ~$12/1M
+        *35b-a3b*|*30b*)          echo "0.018" ;;   # ~$18/1M
+        *70b*)                    echo "0.025" ;;   # ~$25/1M
+        *122b*)                   echo "0.038" ;;   # ~$38/1M
+        *235b*|mistral-large*)   echo "0.075" ;;   # ~$75/1M
+        *397b*|*675b*)            echo "0.125" ;;   # ~$125/1M (flagship models)
+        *)                        echo "0.015" ;;   # default estimate
+    esac
+}
+
+get_estimated_latency_ms() {
+    local id="$1"
+    case "$id" in
+        *8b*|*7b|gemma-3*)        echo "fast" ;;    # <100ms TTFT
+        *27b*|teuken*|apertus*)   echo "moderate" ;; # ~150ms
+        *31b*|*32b*)              echo "moderate" ;; # ~180ms
+        *35b-a3b*|*30b*)          echo "moderate" ;; # ~200ms
+        qwen3.5-122b*)            echo "slow" ;;    # ~300ms (MoE routing)
+        qwen3-coder*)             echo "fast" ;;    # optimized for coding
+        glm-4.7)                  echo "fast" ;;    # optimized for agentic use
+        deepseek-r1*)             echo "slow" ;;    # reasoning overhead
+        *70b*)                    echo "slow" ;;    # ~350ms
+        *235b*|mistral-large*)   echo "slow" ;;    # ~400ms
+        *397b*|*675b*)            echo "very-slow" ;; # ~500ms+ (maximum quality)
+        *)                        echo "moderate" ;; # default
+    esac
+}
+
+get_recommended_for() {
+    local id="$1"
+    case "$id" in
+        *coder*)                 echo "agentic-coding,code-refactor,debug" ;;
+        *vision*|*vl-*|internvl*)  echo "image-analysis,multimodal,diagrams" ;;
+        *thinking*|*r1*|deepseek*) echo "complex-reasoning,math,planning" ;;
+        glm-4.7|devstral*)       echo "agentic-coding,tool-use,architecture" ;;
+        medical*)                echo "medical-qa,healthcare,biomedical" ;;
+        teuken*|sauerkraut*)     echo "german-text,research,academic" ;;
+        qwen3.5-397b*)           echo "complex-reasoning,high-quality- writing" ;;
+        qwen3-5-122b*)           echo "balanced-response,fast-reasoning" ;;
+        qwen3-5-35b*)            echo "fast-reasoning,general-purpose" ;;
+        qwen3-5-27b*)            echo "efficient-reasoning,cost-optimization" ;;
+        *8b*)                    echo "quick-edits,summarization,cost-optimization" ;;
+        *70b*|*675b*)            echo "large-context,document-analysis,complex-tasks" ;;
+        *235b*)                  echo "large-batch,context-heavy,multiple-files" ;;
+        *)                       echo "general-purpose,chat,daily-tasks" ;;
+    esac
+}
+
 describe() {
     local id="$1"
     local cat="$2"
@@ -264,12 +320,16 @@ echo "$MODELS_JSON" | jq -r '.data[].id' | sort | while read -r model_id; do
     attach_flag=$(supports_attachment "$model_id")
     ctx=$(get_context_window "$model_id")
     out=$(get_output_window "$model_id")
+    cost=$(get_cost_per_1k_tokens "$model_id")
+    latency=$(get_estimated_latency_ms "$model_id")
+    recommended=$(get_recommended_for "$model_id")
 
     fields="\"name\": \"$desc\""
     fields="$fields, \"options\": {\"enable-tools\": true, \"enable-auto-tool-choice\": true, \"tool-call-parser\": \"openai\"}"
     [[ "$reason_flag" == "true" ]] && fields="$fields, \"can_reason\": true"
     [[ "$attach_flag" == "true" ]] && fields="$fields, \"attachment\": true"
     fields="$fields, \"limit\": {\"context\": $ctx, \"output\": $out}"
+    fields="$fields, \"metadata\": {\"cost_per_1k_tokens\": $cost, \"estimated_latency\": \"$latency\", \"recommended_for\": [$(echo "$recommended" | sed 's/,/","/g' | sed 's/^/"/;s/$/"/')] }"
 
     printf '        "%s": {%s}' "$model_id" "$fields" >> "$MASTER_CONFIG"
 done
