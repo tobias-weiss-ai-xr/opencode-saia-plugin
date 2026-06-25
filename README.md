@@ -2,7 +2,11 @@
 
 OpenCode plugin that adds all [SAIA](https://chat-ai.academiccloud.de) (GWDG Chat AI) models to your OpenCode setup.
 
-**Repositories:** [Codeberg](https://codeberg.org/graphwiz-ai/opencode-saia-plugin) · [GitLab](https://gitlab-ce.gwdg.de/jlewis/opencode-saia-plugin)
+**Repositories:** 
+- **Primary (maintained):** [Codeberg](https://codeberg.org/graphwiz-ai/opencode-saia-plugin) (this repo)
+- **Original (reference):** [GitLab](https://gitlab-ce.gwdg.de/jlewis/opencode-saia-plugin) (jlewis/GWDG)
+
+Both repos share a common origin (commit f2c758b) and sync frequently. This Codeberg version focuses on model categorization, rich metadata, and cross-platform installation scripts.
 
 ## What It Does
 
@@ -150,6 +154,42 @@ Metrics to track: `time_total` (latency), `usage.prompt_tokens`, `usage.completi
 |---|---|---|
 | `SAIA_API_KEY` | Yes | API key for GWDG Chat AI service |
 | `LITELLM_PROXY_URL` | No | Optional LiteLLM proxy URL for caching/rate limiting |
+
+## Comparison with Original GWDG Plugin
+
+This fork (Codeberg/graphwiz-ai) is based on the original SAIA plugin by jlewis/GWDG (GitLab-ce) but has diverged with additional features and different approach priorities.
+
+| Aspect | This Fork (Codeberg) | Original (GitLab) |
+|--------|----------------------|-------------------|
+| **Architecture** | Bash shell scripts (`generate-saia-config.sh`, `copy-saia-config.sh`) | Bash + Node.js (`generate-saia-config.mjs`) |
+| **Plugin `saia.ts`** | Calls shell scripts (simple, portable) | Native Node.js plugin (auto-refresh from API each launch) |
+| **Model generation** | Shell: `curl` + `jq` curated categorizations; internal `gitlab/master` reference | Bash scripts; optionally Node.js; uses `fetch()` for live API calls |
+| **Model metadata** | Rich: `can_reason`, `attachment`, `limit.context`, `limit.output`, curated categorization | Adds `options.enable-auto-tool-choice`, `options.tool-call-parser` per model |
+| **Provider options** | `options.baseURL`, `apiKey` | Adds then removes `options.headers.inference-service: "saia-openai-gateway"` |
+| **Installation** | `install.sh`/`install.ps1` (adapted for Codeberg URLs); optional `LITELLM_PROXY_URL` | `install.sh`/`install.ps1` (Auto-configures `opencode.json` on first install); optional profile support |
+| **Dedicated docs** | README Sections: Pre-setup, What It Does, Available Models (categories table), Benchmarking, Troubleshooting, Files, Environment Variables, License | README Sections: shorter docs; fewer documented environment variables |
+| **Files** | `generate-saia-config.sh`, `copy-saia-config.sh`, `generate-saia-config.mjs` (not present/unused in this fork) | `generate-saia-config.mjs`, `generate-saia-config.sh` (older version) |
+| **Features** | Model categories: Reasoning, Coder, Vision, Medical, Research, Agentic, Large Context, General; per-model metadata; `.editorconfig`, `LICENSE`, `.gitignore`; JSON validation | Cross-platform Node.js scripts; config-level `formatter: {}`; auto-refresh on launch; permissions toggle |
+| **Syncs** | `gitlab/master` mirror retained for reference | Origin |
+| **Commit count since fork** | +13 commits (only in Codeberg) | +16 commits (only in GitLab) |
+
+**Common History:** Both repos share commits `b7df10c` through `f2c758b` (9 commits). After that, they took different directions:
+- **Codeberg**: Enhanced model categorization, added metadata, better installation docs, cherry-picked formatter/option fixes
+- **GitLab**: Refactored to native Node.js plugin, added auto-refresh, improved config management
+
+**Why Use This Fork:**
+- Cleaner model categorization (Reasoning, Vision, Medical, etc.)
+- Per-model metadata (context windows, output limits, reasoning flags)
+- Richer documentation (models table, troubleshooting, benchmarking)
+- Cross-platform install scripts (Linux/macOS/Windows)
+- `.editorconfig` for consistent formatting and `.gitignore` for generated files
+
+**Why Use Original:**
+- Native Node.js plugin (no shell dependencies)
+- Auto-refresh from SAIA API on each OpenCode launch
+- Simpler model config generation
+
+**Best Strategy:** Use this fork for production (richer features) → monitor GitLab for architectural improvements (native plugin, auto-refresh).
 
 ## Files
 
