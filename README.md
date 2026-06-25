@@ -159,19 +159,19 @@ Metrics to track: `time_total` (latency), `usage.prompt_tokens`, `usage.completi
 
 This fork (Codeberg/graphwiz-ai) is based on the original SAIA plugin by jlewis/GWDG (GitLab-ce) but has diverged with additional features and different approach priorities.
 
-| Aspect | This Fork (Codeberg) | Original (GitLab) |
-|--------|----------------------|-------------------|
-| **Architecture** | Bash shell scripts (`generate-saia-config.sh`, `copy-saia-config.sh`) | Bash + Node.js (`generate-saia-config.mjs`) |
-| **Plugin `saia.ts`** | Calls shell scripts (simple, portable) | Native Node.js plugin (auto-refresh from API each launch) |
-| **Model generation** | Shell: `curl` + `jq` curated categorizations; internal `gitlab/master` reference | Bash scripts; optionally Node.js; uses `fetch()` for live API calls |
-| **Model metadata** | Rich: `can_reason`, `attachment`, `limit.context`, `limit.output`, curated categorization | Adds `options.enable-auto-tool-choice`, `options.tool-call-parser` per model |
-| **Provider options** | `options.baseURL`, `apiKey` | Adds then removes `options.headers.inference-service: "saia-openai-gateway"` |
-| **Installation** | `install.sh`/`install.ps1` (adapted for Codeberg URLs); optional `LITELLM_PROXY_URL` | `install.sh`/`install.ps1` (Auto-configures `opencode.json` on first install); optional profile support |
-| **Dedicated docs** | README Sections: Pre-setup, What It Does, Available Models (categories table), Benchmarking, Troubleshooting, Files, Environment Variables, License | README Sections: shorter docs; fewer documented environment variables |
-| **Files** | `generate-saia-config.sh`, `copy-saia-config.sh`, `generate-saia-config.mjs` (not present/unused in this fork) | `generate-saia-config.mjs`, `generate-saia-config.sh` (older version) |
-| **Features** | Model categories: Reasoning, Coder, Vision, Medical, Research, Agentic, Large Context, General; per-model metadata; `.editorconfig`, `LICENSE`, `.gitignore`; JSON validation | Cross-platform Node.js scripts; config-level `formatter: {}`; auto-refresh on launch; permissions toggle |
-| **Syncs** | `gitlab/master` mirror retained for reference | Origin |
-| **Commit count since fork** | +13 commits (only in Codeberg) | +16 commits (only in GitLab) |
+| Aspect | This Fork (Codeberg) | Upstream (GitLab) | bleedingEdge Branch |
+|--------|----------------------|-------------------|-------------------|
+| **Architecture** | Bash shell scripts (`generate-saia-config.sh`, `copy-saia-config.sh`) | Bash + Node.js (`generate-saia-config.mjs`) | Native Node.js plugin (`saia.ts`) |
+| **Plugin `saia.ts`** | Calls shell scripts (simple, portable) | Native Node.js plugin (auto-refresh from API each launch) | Native Node.js plugin + memory layer (`fetchWithCache`, metrics, preferences) |
+| **Model generation** | Shell: `curl` + `jq` curated categorizations; internal `gitlab/master` reference | Bash scripts; optionally Node.js; uses `fetch()` for live API calls | Live API fetch with 24h TTL cache; metrics and usage tracking; per-project context learning |
+| **Model metadata** | Rich: `can_reason`, `attachment`, `limit.context`, `limit.output`, curated categorization | Adds `options.enable-auto-tool-choice`, `options.tool-call-parser` per model | Same rich metadata as master + project-specific preferences learned from usage |
+| **Provider options** | `options.baseURL`, `apiKey` | Adds then removes `options.headers.inference-service: "saia-openai-gateway"` | Same as master, plus sync with profile switches (production/dev/budget) |
+| **Installation** | `install.sh`/`install.ps1` (adapted for Codeberg URLs); optional `LITELLM_PROXY_URL` | `install.sh`/`install.ps1` (Auto-configures `opencode.json` on first install); optional profile support | Same as master + `.opencode/skills/` directory |
+| **Dedicated docs** | README Sections: Pre-setup, What It Does, Available Models (categories table), Benchmarking, Troubleshooting, Files, Environment Variables, License | README Sections: shorter docs; fewer documented environment variables | All master docs + Memory Layer and SAIA Skills sections + Ref to bleedingEdge features |
+| **Files** | `generate-saia-config.sh`, `copy-saia-config.sh`, `generate-saia-config.mjs` (not present/unused in this fork) | `generate-saia-config.mjs`, `generate-saia-config.sh` (older version) | Adds `src/saia-memory.ts`, `.opencode/skills/*.md` skills files, `package.json`, `tsconfig.json` |
+| **Features** | Model categories: Reasoning, Coder, Vision, Medical, Research, Agentic, Large Context, General; per-model metadata; `.editorconfig`, `LICENSE`, `.gitignore`; JSON validation | Cross-platform Node.js scripts; config-level `formatter: {}`; auto-refresh on launch; permissions toggle | All master features + memory layer (cache, metrics, usage, preferences) + five SAIA skills + model optimization/recommendation + health checks |
+| **Syncs** | `gitlab/master` mirror retained for reference | Origin | Cherry-picks of master improvements; auto-refresh removed (conflicts with curated metadata) |
+| **Commit count since fork** | +13 commits (only in Codeberg) | +16 commits (only in GitLab) | Adds native plugin + memory + skills (staging + commit `c37582b`, commit `68b7c76`) |
 
 **Common History:** Both repos share commits `b7df10c` through `f2c758b` (9 commits). After that, they took different directions:
 - **Codeberg**: Enhanced model categorization, added metadata, better installation docs, cherry-picked formatter/option fixes
@@ -193,18 +193,26 @@ This fork (Codeberg/graphwiz-ai) is based on the original SAIA plugin by jlewis/
 - Auto-refresh from SAIA API on each OpenCode launch
 - Simpler model config generation
 
-**Best Strategy:** Use this fork for production (richer features) → monitor GitLab for architectural improvements (native plugin, auto-refresh).
+**Best Strategy:** Use this fork for production (richer features) → monitor GitLab for architectural improvements (native plugin, auto-refresh). For bleeding-edge features (memory, skills, optimization), switch to `bleedingEdge` branch.
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `src/saia.ts` | OpenCode plugin — runs on startup |
-| `src/generate-saia-config.sh` | Fetches models from API, generates master config |
-| `src/copy-saia-config.sh` | Copies master config to project directory |
+| `src/saia.ts` | OpenCode plugin — master: shell wrapper; `bleedingEdge`: native Node.js plugin |
+| `src/saia-memory.ts` | Memory layer utilities (`bleedingEdge` only) - caching, usage tracking, metrics |
+| `src/generate-saia-config.sh` | Fetches models from API, generates master config (master branch) |
+| `src/copy-saia-config.sh` | Copies master config to project directory (master branch) |
 | `src/opencode-saia.json` | Master configuration (generated, 27 models) |
-| `install.sh` | One-click installer for Linux/macOS |
-| `install.ps1` | One-click installer for Windows PowerShell |
+| `.opencode/skills/` | SAIA skills directory (`bleedingEdge` only) |
+| `.opencode/skills/saia-refresh.md` | Force-refresh model list skill |
+| `.opencode/skills/saia-health.md` | SAIA API health check skill |
+| `.opencode/skills/saia-optimize.md` | Model optimization / recommendation skill |
+| `.opencode/skills/saia-switch-profile.md` | Profile switcher skill (production/dev/budget) |
+| `.opencode/skills/saia-memory-clear.md` | Clear all SAIA memory skill |
+| `package.json` | Node.js dependencies (`bleedingEdge` only) |
+| `tsconfig.json` | TypeScript configuration (`bleedingEdge` only) |
+| `install.sh/install.ps1` | One-click installers (Linux/macOS/Windows) |
 | `opencode.json.example` | Example opencode.json for reference |
 | `LICENSE` | MIT License |
 
