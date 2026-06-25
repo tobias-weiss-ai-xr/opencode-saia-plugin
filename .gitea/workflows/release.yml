@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate shell scripts
+        run: |
+          bash -n src/generate-saia-config.sh
+          bash -n src/copy-saia-config.sh
+          bash -n src/validate-config.sh
+          bash -n src/setup-wizard.sh
+
+      - name: TypeScript check
+        run: npx tsc --noEmit --skipLibCheck
+
+      - name: Validate schema
+        run: bash src/validate-config.sh src/opencode-saia.json
+
+      - name: Generate release changelog
+        id: changelog
+        run: |
+          git log --oneline --no-decorate $(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD > /tmp/changelog.txt
+          echo "changelog<<EOF" >> $GITHUB_ENV
+          cat /tmp/changelog.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            ## SAIA Plugin ${{ github.ref_name }}
+
+            ### Changes since last release:
+            ${{ env.changelog }}
+
+            ### Installation
+            ```bash
+            curl -fsSL https://codeberg.org/graphwiz-ai/opencode-saia-plugin/raw/branch/master/install.sh | bash
+            ```
+
+            See [README.md](https://codeberg.org/graphwiz-ai/opencode-saia-plugin/src/branch/master/README.md) for full documentation.
+          draft: false
+          prerelease: false
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            codeberg.org/graphwiz-ai/opencode-saia-plugin:latest
+            codeberg.org/graphwiz-ai/opencode-saia-plugin:${{ github.ref_name }}

@@ -8,6 +8,16 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MASTER_CONFIG="$SCRIPT_DIR/opencode-saia.json"
 
+# Parse flags
+INCREMENTAL=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --incremental) INCREMENTAL=true; shift ;;
+        --help|-h) echo "Usage: $0 [--incremental]"; exit 0 ;;
+        *) shift ;;
+    esac
+done
+
 SAIA_API_KEY="${SAIA_API_KEY:-}"
 
 # LiteLLM proxy support — if LITELLM_PROXY_URL is set, use the proxy instead of direct SAIA API
@@ -69,19 +79,45 @@ fi
 
 API_BASE_URL="${LITELLM_PROXY_URL:-https://chat-ai.academiccloud.de/v1}"
 
+TIMING_START=$(date +%s%N)
+
 print_info "Fetching latest SAIA models..."
 
+FETCH_START=$(date +%s)
 MODELS_JSON=$(curl -s --max-time 30 "${API_BASE_URL}/models" \
     -H "Authorization: Bearer $SAIA_API_KEY")
+FETCH_END=$(date +%s)
+FETCH_ELAPSED=$((FETCH_END - FETCH_START))
+print_info "API fetch completed in ${FETCH_ELAPSED}s"
 
 if [[ -z "$MODELS_JSON" ]] || ! echo "$MODELS_JSON" | jq -e '.data' >/dev/null 2>&1; then
     print_error "Failed to fetch models from SAIA API"
-    print_info "Check: SAIA_API_KEY is valid, and you have network access to chat-ai.academiccloud.de"
+    print_info "Why this happened: Could be an invalid API key, network timeout, or server issue"
+    print_info "Check:"
+    print_info "  - SAIA_API_KEY is valid (not expired or revoked)"
+    print_info "  - Network connectivity to: ${API_BASE_URL}/models"
+    print_info "  - Proxy/VPN settings are not blocking the request"
+    if [[ -z "$FETCH_ELAPSED" || "$FETCH_ELAPSED" -ge 30 ]]; then
+        print_info "  - The request timed out after 30s (server may be slow or unreachable)"
+    fi
+    print_info "To verify your key manually: curl -s -o /dev/null -w '%{http_code}' -H 'Authorization: Bearer <key>' ${API_BASE_URL}/models"
     exit 1
 fi
 
 MODEL_COUNT=$(echo "$MODELS_JSON" | jq -r '.data | length')
 print_info "Found $MODEL_COUNT SAIA models"
+
+# Cache last successful fetch timestamp
+SAIA_CACHE_DIR="$HOME/.cache/saia"
+mkdir -p "$SAIA_CACHE_DIR"
+cat > "$SAIA_CACHE_DIR/last-fetch.json" <<EOF
+{
+  "lastFetchTimestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "modelCount": $MODEL_COUNT,
+  "profile": "$SAIA_PROFILE",
+  "elapsedSeconds": $FETCH_ELAPSED
+}
+EOF
 
 if [[ -f "$MASTER_CONFIG" ]]; then
     OLD_COUNT=$(jq -r '.provider.saia.models | length' "$MASTER_CONFIG" 2>/dev/null || echo "0")
@@ -396,6 +432,23 @@ get_output_window() {
     esac
 }
 
+# --- Incremental mode ---
+# Compare fresh model IDs against current config; skip regeneration if unchanged
+if [[ "$INCREMENTAL" == "true" && -f "$MASTER_CONFIG" ]]; then
+    FRESH_IDS=$(echo "$MODELS_JSON" | jq -r '.data[].id' | sort)
+    CURRENT_IDS=$(jq -r '.provider.saia.models | keys[]' "$MASTER_CONFIG" 2>/dev/null | sort)
+
+    if [[ "$FRESH_IDS" == "$CURRENT_IDS" ]]; then
+        ELAPSED=$(echo "scale=2; ($(date +%s%N) - $TIMING_START) / 1000000000" | bc 2>/dev/null || echo "0")
+        print_info "No model changes detected — skipping regeneration"
+        print_info "Config generation completed in ${ELAPSED}s"
+        cp "$MASTER_CONFIG" ./opencode.json 2>/dev/null || true
+        exit 0
+    else
+        print_info "Model changes detected — regenerating config"
+    fi
+fi
+
 print_info "Generating opencode.json..."
 
 cat > "$MASTER_CONFIG" <<'HEADER'
@@ -494,26 +547,71 @@ for alias_entry in "${ALIASES[@]}"; do
     fi
 done
 
-cat >> "$MASTER_CONFIG" <<'FOOTER'
+# --- Multi-Provider Support ---
+# If OLLAMA_BASE_URL is set, discover Ollama models and append the provider.
 
+OLLAMA_FRAGMENT=""
+if [[ -n "${OLLAMA_BASE_URL:-}" ]]; then
+    OLLAMA_PROVIDER_SCRIPT="$SCRIPT_DIR/provider/ollama.sh"
+    if [[ -f "$OLLAMA_PROVIDER_SCRIPT" ]]; then
+        print_info "Ollama base URL detected — discovering local models"
+        OLLAMA_FRAGMENT=$(bash "$OLLAMA_PROVIDER_SCRIPT" 2>/dev/null || true)
+        if [[ -n "$OLLAMA_FRAGMENT" ]]; then
+            OLLAMA_MODEL_COUNT=$(echo "$OLLAMA_FRAGMENT" | jq -r '.ollama.models | length' 2>/dev/null || echo "0")
+            if [[ "$OLLAMA_MODEL_COUNT" -gt 0 ]]; then
+                print_info "Ollama provider ready: $OLLAMA_MODEL_COUNT model(s)"
+            else
+                print_info "Ollama provider found but no models available"
+                OLLAMA_FRAGMENT=""
+            fi
+        fi
+    else
+        print_warn "Ollama provider script not found: $OLLAMA_PROVIDER_SCRIPT"
+    fi
+fi
+
+# Close the saia provider section
+cat >> "$MASTER_CONFIG" <<'SAIA_CLOSE'
       }
     }
+SAIA_CLOSE
+
+# Append Ollama provider if available
+if [[ -n "$OLLAMA_FRAGMENT" ]]; then
+    echo "," >> "$MASTER_CONFIG"
+    echo "$OLLAMA_FRAGMENT" >> "$MASTER_CONFIG"
+fi
+
+# Close the provider and root
+cat >> "$MASTER_CONFIG" <<'ROOT_CLOSE'
   }
 }
-FOOTER
+ROOT_CLOSE
 
 if ! jq '.' "$MASTER_CONFIG" >/dev/null 2>&1; then
     print_error "Generated JSON is invalid - aborting"
+    print_info "Why this happened: The model data or script output produced malformed JSON"
+    print_info "Check:"
+    print_info "  - Model descriptions contain special characters that break JSON syntax"
+    print_info "  - The API returned unexpected data format (run without pipe to inspect)"
+    print_info "  - String values in model metadata contain unescaped quotes or control chars"
     rm -f "$MASTER_CONFIG"
     exit 1
 fi
+
+# Add last_updated header field with current timestamp
+LAST_UPDATED=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+jq --arg lu "$LAST_UPDATED" '. + {last_updated: $lu}' "$MASTER_CONFIG" > "${MASTER_CONFIG}.tmp" && mv "${MASTER_CONFIG}.tmp" "$MASTER_CONFIG"
+print_info "last_updated: $LAST_UPDATED"
 
 if [[ "$USE_PROXY" == "true" ]]; then
     sed -i "s|https://chat-ai.academiccloud.de/v1|${LITELLM_PROXY_URL}|g" "$MASTER_CONFIG"
     print_info "Configured to use LiteLLM proxy: $LITELLM_PROXY_URL"
 fi
 
+ELAPSED=$(echo "scale=2; ($(date +%s%N) - $TIMING_START) / 1000000000" | bc 2>/dev/null || echo "0")
 print_info "Master configuration updated: $MASTER_CONFIG ($MODEL_COUNT models)"
+print_info "Config generation completed in ${ELAPSED}s"
 
 # Copy to current directory
 cp "$MASTER_CONFIG" ./opencode.json

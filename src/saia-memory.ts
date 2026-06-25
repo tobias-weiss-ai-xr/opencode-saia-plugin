@@ -206,3 +206,80 @@ export async function getRecommendedModel(availableModels: string[]): Promise<st
 
   return availableModels[0] || "unknown"
 }
+
+interface ModelDiff {
+  added: string[]
+  removed: string[]
+}
+
+const MODELS_CACHE_FILE = path.join(CACHE_DIR, "models-list.json")
+
+/** Check for new or removed models compared to the last cached list.
+ *
+ * Fetches fresh model IDs from a SAIA-compatible API endpoint,
+ * compares them against the cached list, and returns the diff.
+ * Does NOT auto-refresh the cache — only detects changes for notification.
+ */
+export async function checkForNewModels(
+  apiBaseUrl = "https://chat-ai.academiccloud.de/v1",
+  apiKey?: string,
+): Promise<ModelDiff> {
+  await ensureCacheDir()
+
+  const fs = await import("node:fs/promises")
+
+  // Read cached model list
+  let cachedIds: string[] = []
+  try {
+    const raw = await fs.readFile(MODELS_CACHE_FILE, "utf8")
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed.ids)) {
+      cachedIds = parsed.ids
+    }
+  } catch {
+    // No cache yet — first run
+  }
+
+  // Fetch fresh model list
+  const key = apiKey || process.env.SAIA_API_KEY || ""
+  const url = `${apiBaseUrl.replace(/\/$/, "")}/models`
+
+  let freshIds: string[] = []
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(15_000),
+    })
+    if (!res.ok) {
+      console.error(`[SAIA Memory] checkForNewModels: API returned ${res.status}`)
+      return { added: [], removed: [] }
+    }
+    const body: { data?: Array<{ id: string }> } = await res.json()
+    freshIds = (body.data || []).map((m) => m.id).sort()
+
+    // Persist the fresh list as the new cache snapshot
+    const tmp = MODELS_CACHE_FILE + ".tmp"
+    await fs.writeFile(tmp, JSON.stringify({ ids: freshIds, timestamp: Date.now() }, null, 2))
+    await fs.rename(tmp, MODELS_CACHE_FILE)
+  } catch (err) {
+    console.error(`[SAIA Memory] checkForNewModels: fetch failed — ${err}`)
+    return { added: [], removed: [] }
+  }
+
+  // No prior cache = first check, return empty diff
+  if (cachedIds.length === 0) {
+    return { added: [], removed: [] }
+  }
+
+  const cachedSet = new Set(cachedIds)
+  const freshSet = new Set(freshIds)
+
+  const added = freshIds.filter((id) => !cachedSet.has(id))
+  const removed = cachedIds.filter((id) => !freshSet.has(id))
+
+  if (added.length > 0 || removed.length > 0) {
+    console.log(`[SAIA Memory] Model changes detected: +${added.length} -${removed.length}`)
+  }
+
+  return { added, removed }
+}
