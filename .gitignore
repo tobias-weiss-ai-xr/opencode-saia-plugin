@@ -1,3 +1,7 @@
 # Generated local config copies
 src/opencode.json
 opencode.json
+
+# Node.js
+node_modules/
+package-lock.json
