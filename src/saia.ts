@@ -47,7 +47,8 @@ async function fetchModels(): Promise<{ data: Array<{ id: string }> }> {
     throw new Error(`SAIA API returned ${res.status}: ${res.statusText}`)
   }
   await memory.updateMetrics("api", true, latencyMs)
-  return res.json() as { data: Array<{ id: string }> }
+  const json = await res.json()
+  return json as unknown as { data: Array<{ id: string }> }
 }
 
 async function refreshSaiaConfig(client: any) {
