@@ -177,6 +177,10 @@ This fork (Codeberg/graphwiz-ai) is based on the original SAIA plugin by jlewis/
 - **Codeberg**: Enhanced model categorization, added metadata, better installation docs, cherry-picked formatter/option fixes
 - **GitLab**: Refactored to native Node.js plugin, added auto-refresh, improved config management
 
+**References:**
+- Primary (Codeberg/graphwiz-ai): https://codeberg.org/graphwiz-ai/opencode-saia-plugin · tag: `v0.1.3` · commit: `9478ebf`
+- Original (GitLab/jlewis): https://gitlab-ce.gwdg.de/jlewis/opencode-saia-plugin · tag: `v0.1.2` · commit: `8e71b38`
+
 **Why Use This Fork:**
 - Cleaner model categorization (Reasoning, Vision, Medical, etc.)
 - Per-model metadata (context windows, output limits, reasoning flags)
