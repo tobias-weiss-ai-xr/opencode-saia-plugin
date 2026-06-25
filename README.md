@@ -54,6 +54,21 @@ curl -fsSL https://codeberg.org/graphwiz-ai/opencode-saia-plugin/raw/branch/mast
 Invoke-WebRequest -Uri "https://codeberg.org/graphwiz-ai/opencode-saia-plugin/raw/branch/master/install.ps1" -UseBasicParsing | Invoke-Expression
 ```
 
+### Interactive Setup Wizard
+
+For first-time users, the interactive wizard guides you through the entire setup:
+
+```bash
+bash src/setup-wizard.sh
+```
+
+The wizard will:
+1. **Validate your SAIA API key** against the live API
+2. **Select a profile** (production / development / budget)
+3. **Install plugin files** to `~/.config/opencode/plugins/saia/`
+4. **Generate config** with your chosen profile
+5. **Persist your API key** in your shell config (`.bashrc` / `.zshrc`)
+
 ### LiteLLM Proxy (Optional)
 
 If you have a LiteLLM proxy running (e.g., with SAIA models configured), you can route all requests through it for caching, rate limiting, and fallback support:
@@ -246,6 +261,7 @@ If validation fails, the script will show detailed error messages to help you fi
 | `src/saia.ts` | OpenCode plugin — master: shell wrapper; `bleedingEdge`: native Node.js plugin |
 | `src/saia-memory.ts` | Memory layer utilities (`bleedingEdge` only) - caching, usage tracking, metrics |
 | `src/validate-config.sh` | JSON schema validator for opencode.json files |
+| `src/setup-wizard.sh` | Interactive first-time setup wizard (validates API key, selects profile) |
 | `src/generate-saia-config.sh` | Fetches models from API, generates master config (master branch) |
 | `src/copy-saia-config.sh` | Copies master config to project directory (master branch) |
 | `src/opencode-saia.json` | Master configuration (generated, 27 models with metadata) |
