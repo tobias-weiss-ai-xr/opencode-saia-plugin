@@ -21,6 +21,11 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+if ! command -v jq &>/dev/null; then
+    print_error "jq is required but not installed"
+    exit 1
+fi
+
 # Check if master config exists
 if [[ ! -f "$MASTER_CONFIG" ]]; then
     print_error "Master configuration not found at: $MASTER_CONFIG"
@@ -32,7 +37,11 @@ fi
 MODEL_COUNT=$(jq -r '.provider.saia.models | length' "$MASTER_CONFIG" 2>/dev/null || echo "0")
 print_info "Master configuration has $MODEL_COUNT SAIA models"
 
-# Copy to current directory
-cp "$MASTER_CONFIG" ./opencode.json
-print_info "Copied opencode.json to current directory"
+# Only overwrite if content differs
+if [[ -f ./opencode.json ]] && diff -q "$MASTER_CONFIG" ./opencode.json >/dev/null 2>&1; then
+    print_info "opencode.json is already up to date"
+else
+    cp "$MASTER_CONFIG" ./opencode.json
+    print_info "Copied opencode.json to current directory"
+fi
 print_info "SAIA models are now available in this directory!"
