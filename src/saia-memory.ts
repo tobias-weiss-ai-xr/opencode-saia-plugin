@@ -14,30 +14,48 @@ const PROJECT_CONTEXT_FILE = path.join(process.cwd(), ".opencode", "saia", "cont
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
 
 /** Ensure cache directory exists */
-export async function ensureCacheDir(): Promise<void> {
+export async function ensureCacheDir(cacheDir = CACHE_DIR): Promise<void> {
   try {
-    await import("node:fs/promises").then(fs => fs.mkdir(CACHE_DIR, { recursive: true }))
+    await import("node:fs/promises").then(fs => fs.mkdir(cacheDir, { recursive: true }))
   } catch (err) {
     console.error(`[SAIA Memory] Failed to create cache directory: ${err}`)
   }
 }
 
+export interface FetchWithCacheOptions {
+  forceRefresh?: boolean
+  cacheFile?: string
+  cacheTtlMs?: number
+  isValid?: (value: unknown) => boolean
+  onInvalidCache?: (message: string) => void
+}
+
 /** Fetch with caching - returns cached data if valid, else fetches and caches */
 export async function fetchWithCache<T>(
   fetcher: () => Promise<T>,
-  forceRefresh = false,
+  options: boolean | FetchWithCacheOptions = false,
 ): Promise<{ data: T; cached: boolean }> {
-  await ensureCacheDir()
+  const {
+    forceRefresh = false,
+    cacheFile = CACHE_FILE,
+    cacheTtlMs = CACHE_TTL_MS,
+    isValid = () => true,
+    onInvalidCache = console.warn,
+  } = typeof options === "boolean" ? { forceRefresh: options } : options
+  await ensureCacheDir(path.dirname(cacheFile))
 
   // Check cache
   if (!forceRefresh) {
     try {
       const fs = await import("node:fs/promises")
-      const cachedRaw = await fs.readFile(CACHE_FILE, "utf8")
+      const cachedRaw = await fs.readFile(cacheFile, "utf8")
       const cached = JSON.parse(cachedRaw)
       const age = Date.now() - cached.timestamp
-      if (age < CACHE_TTL_MS) {
+      if (age < cacheTtlMs && isValid(cached.data)) {
         return { data: cached.data as T, cached: true }
+      }
+      if (age < cacheTtlMs) {
+        onInvalidCache("[SAIA] Ignoring a structurally invalid cached model list")
       }
     } catch {
       // Cache miss or invalid
@@ -51,9 +69,9 @@ export async function fetchWithCache<T>(
   try {
     const fs = await import("node:fs/promises")
     const cacheEntry = { data, timestamp: Date.now() }
-    const tmp = CACHE_FILE + ".tmp"
+    const tmp = cacheFile + ".tmp"
     await fs.writeFile(tmp, JSON.stringify(cacheEntry, null, 2))
-    await fs.rename(tmp, CACHE_FILE)
+    await fs.rename(tmp, cacheFile)
   } catch (err) {
     console.error(`[SAIA Memory] Failed to write cache: ${err}`)
   }

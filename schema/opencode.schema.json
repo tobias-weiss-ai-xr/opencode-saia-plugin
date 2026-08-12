@@ -36,7 +36,7 @@
           "properties": {
             "npm": {
               "type": "string",
-              "const": "@ai-sdk/openai-compatible"
+              "enum": ["@ai-sdk/openai-compatible", "@ai-sdk/openai"]
             },
             "name": {
               "type": "string",

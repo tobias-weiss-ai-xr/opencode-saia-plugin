@@ -1,135 +1,204 @@
-// Drop this file into ~/.config/opencode/plugins/saia.ts
-// and add "plugin": ["./saia"] to ~/.config/opencode/opencode.json
+// Installed at ~/.config/opencode/plugins/saia/saia.ts.
+// The immediate plugins/saia-plugin.ts wrapper is what OpenCode discovers; see that file.
 
-import path from "node:path"
-import os from "node:os"
-import fs from "node:fs/promises"
+import type { Config, Hooks, Plugin, PluginInput } from "@opencode-ai/plugin"
 
 import * as memory from "./saia-memory.js"
+import {
+  SAIA_API_KEY_PLACEHOLDER,
+  decorateSaiaConfig,
+  isSaiaModelsResponse,
+  parseSaiaModelsResponse,
+} from "./saia-config.mjs"
+import { resolveSaiaApiKey } from "./saia-api-key.mjs"
+import { createSaiaLimitsHooks } from "./saia-limits-server.js"
+import { managedModelsFromSettings, readSaiaSettings, updateSaiaSettings } from "./saia-settings.mjs"
+import { resolveSaiaTransport } from "./saia-transport.mjs"
+import { normalizeSaiaQwenSystemMessages } from "./saia-system-messages.js"
 
-const CONFIG = path.join(os.homedir(), ".config", "opencode", "opencode.json")
 const ENDPOINT = "https://chat-ai.academiccloud.de/v1/models"
 
-const PERMISSIONS = {
-  bash: "allow",
-  edit: "allow",
-  read: "allow",
-  grep: "allow",
-  glob: "allow",
-  lsp: "allow",
-  skill: "allow",
-  task: "allow",
-  webfetch: "allow",
-  websearch: "allow",
-  question: "allow",
-  external_directory: "ask",
-  doom_loop: "ask",
+type SaiaModelsResponse = {
+  data: Array<Record<string, unknown> & { id: string }>
 }
 
-export default async ({ client }: { client: any }) => {
-  refreshSaiaConfig(client).catch(() => {})
-  return {}
+type CachedModels = {
+  data: SaiaModelsResponse
+  cached: boolean
 }
 
-async function fetchModels(): Promise<{ data: Array<{ id: string }> }> {
-  const apiKey = process.env.SAIA_API_KEY
-  if (!apiKey) {
-    throw new Error("SAIA_API_KEY environment variable not set (stephart/flare: ensure SAIA_PROXY_URL optional and check API key through LITELLM proxy)")
-  }
-  const startTime = Date.now()
-  const res = await fetch(ENDPOINT, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-    signal: AbortSignal.timeout(3000),
-  })
-  const latencyMs = Date.now() - startTime
-  if (!res.ok) {
-    await memory.updateMetrics("api", false, latencyMs)
-    throw new Error(`SAIA API returned ${res.status}: ${res.statusText}`)
-  }
-  await memory.updateMetrics("api", true, latencyMs)
-  const json = await res.json()
-  return json as unknown as { data: Array<{ id: string }> }
+type SaiaLimitsHooks = {
+  config: (config: Config) => void | Promise<void>
+  "chat.headers": NonNullable<Hooks["chat.headers"]>
 }
 
-async function refreshSaiaConfig(client: any) {
-  const startTime = Date.now()
-  let result
-  try {
-    result = await memory.fetchWithCache(fetchModels)
-    await memory.updateMetrics("refresh", true, Date.now() - startTime)
-  } catch (err) {
-    await memory.updateMetrics("refresh", false, Date.now() - startTime)
-    console.error("[SAIA] Config refresh failed:", err instanceof Error ? err.message : err)
-    return
-  }
-  if (result.cached) {
-    console.log("[SAIA] Using cached model list")
-  }
+export interface SaiaPluginDependencies {
+  fetch?: typeof globalThis.fetch
+  resolveApiKey?: typeof resolveSaiaApiKey
+  resolveTransport?: typeof resolveSaiaTransport
+  readSettings?: typeof readSaiaSettings
+  updateSettings?: typeof updateSaiaSettings
+  fetchWithCache?: typeof memory.fetchWithCache
+  getContext?: typeof memory.getContext
+  getPreferences?: typeof memory.getPreferences
+  updateMetrics?: typeof memory.updateMetrics
+  onWarning?: (message: string) => void
+}
 
-  const { data } = result.data
-  const modelIds = data.map((m) => m.id).sort()
-  if (modelIds.length === 0) {
-    console.warn("[SAIA] No models available from API")
-    return
-  }
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
 
-  let config: any = {}
-  try {
-    config = JSON.parse(await fs.readFile(CONFIG, "utf8"))
-  } catch {
-    console.warn("[SAIA] Config file missing or invalid, creating fresh config")
-  }
+function preferredModelFrom(context: Record<string, unknown>, preferences: Record<string, unknown>) {
+  if (typeof context.preferredModel === "string") return context.preferredModel
+  if (typeof preferences.favoriteModel === "string") return preferences.favoriteModel
+}
 
-  const models: Record<string, any> = {}
-  for (const id of modelIds) {
-    models[id] = {
-      name: id,
-      options: {
-        "enable-tools": true,
-        "enable-auto-tool-choice": true,
-        "tool-call-parser": "openai",
+export function createSaiaPlugin(dependencies: SaiaPluginDependencies = {}): Plugin {
+  const fetchImpl = dependencies.fetch ?? globalThis.fetch
+  const resolveApiKey = dependencies.resolveApiKey ?? resolveSaiaApiKey
+  const resolveTransport = dependencies.resolveTransport ?? resolveSaiaTransport
+  const readSettings = dependencies.readSettings ?? readSaiaSettings
+  const updateSettings = dependencies.updateSettings ?? updateSaiaSettings
+  const fetchWithCache = dependencies.fetchWithCache ?? memory.fetchWithCache
+  const getContext = dependencies.getContext ?? memory.getContext
+  const getPreferences = dependencies.getPreferences ?? memory.getPreferences
+  const updateMetrics = dependencies.updateMetrics ?? memory.updateMetrics
+  const onWarning = dependencies.onWarning ?? console.warn
+
+  return async ({ client }: PluginInput): Promise<Hooks> => {
+    const limits = createSaiaLimitsHooks(client) as SaiaLimitsHooks
+    let modelsPromise: Promise<CachedModels> | undefined
+    let reportedFailure = false
+    let loggedRefresh = false
+
+    const reportFailure = (error: unknown) => {
+      if (reportedFailure) return
+      reportedFailure = true
+      onWarning(`[SAIA] Models were not refreshed: ${errorMessage(error)}. Other providers remain available.`)
+    }
+
+    const fetchModels = async (): Promise<SaiaModelsResponse> => {
+      const apiKey = await resolveApiKey()
+      if (!apiKey) {
+        throw new Error(
+          "No SAIA API key: set SAIA_API_KEY or configure apiKeyCommand in ~/.config/opencode/saia.json",
+        )
+      }
+
+      const startedAt = Date.now()
+      try {
+        const response = await fetchImpl(ENDPOINT, {
+          headers: { Authorization: `Bearer ${apiKey}` },
+          signal: AbortSignal.timeout(3_000),
+        })
+        if (!response.ok) {
+          throw new Error(`SAIA API returned ${response.status}: ${response.statusText}`)
+        }
+
+        const data = parseSaiaModelsResponse(await response.json(), { onWarning })
+        if (data.data.length === 0) {
+          throw new Error("SAIA API returned no ready models")
+        }
+
+        await updateMetrics("api", true, Date.now() - startedAt)
+        return data
+      } catch (error) {
+        await updateMetrics("api", false, Date.now() - startedAt)
+        throw error
+      }
+    }
+
+    const loadModels = () => {
+      if (!modelsPromise) {
+        modelsPromise = (async () => {
+          const startedAt = Date.now()
+          try {
+            const result = await fetchWithCache(fetchModels, {
+              isValid: isSaiaModelsResponse,
+              onInvalidCache: onWarning,
+            })
+            await updateMetrics("refresh", true, Date.now() - startedAt)
+            return result
+          } catch (error) {
+            await updateMetrics("refresh", false, Date.now() - startedAt)
+            throw error
+          }
+        })()
+        void modelsPromise.catch(() => {
+          modelsPromise = undefined
+        })
+      }
+      return modelsPromise
+    }
+
+    const configureSaia = async (config: Config) => {
+      let result: CachedModels
+      try {
+        result = await loadModels()
+      } catch (error) {
+        reportFailure(error)
+        return
+      }
+
+      const settings = await readSettings({ onWarning })
+      const [context, preferences, transport] = await Promise.all([
+        getContext(),
+        getPreferences(),
+        resolveTransport({ onWarning }),
+      ])
+      const { modelIDs, managedModels } = decorateSaiaConfig(config, {
+        models: result.data.data,
+        transport,
+        preferredModel: preferredModelFrom(context, preferences),
+        managedModels: managedModelsFromSettings(settings),
+      })
+
+      const options = config.provider?.saia?.options
+      if (options && (!options.apiKey || options.apiKey === SAIA_API_KEY_PLACEHOLDER)) {
+        const apiKey = await resolveApiKey()
+        if (apiKey) options.apiKey = apiKey
+      }
+
+      try {
+        await updateSettings((current) => ({ ...current, managedModels }))
+      } catch (error) {
+        onWarning(`[SAIA] Could not record managed model metadata: ${errorMessage(error)}`)
+      }
+
+      if (!loggedRefresh) {
+        loggedRefresh = true
+        const source = result.cached ? "cached" : "fresh"
+        console.log(`[SAIA] Configured ${modelIDs.length} models via ${transport.id} (${source})`)
+        try {
+          await client.app.log({
+            body: {
+              service: "saia",
+              level: "info",
+              message: `configured ${modelIDs.length} models (${source})`,
+            },
+          })
+        } catch {
+          // Logging must not affect configuration or provider availability.
+        }
+      }
+    }
+
+    return {
+      async config(config) {
+        await configureSaia(config)
+        await limits.config(config)
+      },
+
+      async "chat.headers"(input, output) {
+        await limits["chat.headers"](input, output)
+      },
+
+      async "experimental.chat.system.transform"(input, output) {
+        normalizeSaiaQwenSystemMessages(input.model, output.system)
       },
     }
   }
-
-  config.$schema ??= "https://opencode.ai/config.json"
-  config.permission = { ...PERMISSIONS, ...(config.permission || {}) }
-  config.provider ??= {}
-  config.provider.saia = {
-    npm: "@ai-sdk/openai-compatible",
-    name: "SAIA (GWDG Chat AI)",
-    options: {
-      baseURL: "https://chat-ai.academiccloud.de/v1",
-      apiKey: "{env:SAIA_API_KEY}",
-    },
-    models,
-  }
-
-  const context = await memory.getContext()
-  const prefModel = context.preferredModel || (await memory.getPreferences()).favoriteModel
-  if (prefModel && modelIds.includes(prefModel)) {
-    config.model = `saia/${prefModel}`
-    console.log(`[SAIA] Using preferred model from preferences/context: ${prefModel}`)
-  } else {
-    const current = config.model
-    const currentIsSaia = typeof current === "string" && current.startsWith("saia/")
-    const currentId = currentIsSaia ? current.slice(5) : null
-    if (!current || (currentIsSaia && !modelIds.includes(currentId!))) {
-      config.model = modelIds.includes("glm-4.7") ? "saia/glm-4.7" : `saia/${modelIds[0]}`
-      console.log(`[SAIA] Selected default model: ${config.model}`)
-    }
-  }
-
-  const tmp = CONFIG + ".tmp"
-  await fs.writeFile(tmp, JSON.stringify(config, null, 2))
-  await fs.rename(tmp, CONFIG)
-  console.log(`[SAIA] Config refreshed: ${modelIds.length} models (${result.cached ? "from cache" : "fresh"})`)
-
-  try {
-    await client.app.log({
-      body: { service: "saia", level: "info", message: `refreshed ${modelIds.length} models (${result.cached ? "cached" : "fresh"})` },
-    })
-  } catch {
-    console.warn("[SAIA] Failed to send log to client")
-  }
 }
+
+export default createSaiaPlugin()
