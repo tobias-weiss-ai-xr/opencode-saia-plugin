@@ -1,3 +1,7 @@
 # Untracked working directories
 .sisyphus/
 %TEMP%/
+
+# Node tooling (npm test / npm run tsc)
+node_modules/
+package-lock.json
