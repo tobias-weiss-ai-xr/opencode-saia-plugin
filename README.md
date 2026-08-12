@@ -69,6 +69,51 @@ The wizard will:
 4. **Generate config** with your chosen profile
 5. **Persist your API key** in your shell config (`.bashrc` / `.zshrc`)
 
+### Rate Limits & Live Quota Counter
+
+The plugin reads SAIA rate-limit headers (`x-ratelimit-remaining-*`) in the background and displays live quota remaining in the OpenCode TUI prompt bar:
+
+```text
+27/m · 117/h · 519/d · 2.5k/mo
+```
+
+### Transport Selection
+
+The plugin supports two SAIA API transports:
+- **Chat Completions API** (`chat-completions`, default): uses `@ai-sdk/openai-compatible` targeting `/v1/chat/completions`. Recommended for standard OpenCode workflows, tool calling, and maximum model compatibility.
+- **Responses API** (`responses`): uses `@ai-sdk/openai` targeting `/v1/responses`. Useful when routing through API gateways or proxies that mandate the OpenAI Responses API format.
+
+#### Switching Transport for Installed Plugin
+If the plugin is already installed in `~/.config/opencode/plugins/saia`, switch transport dynamically at any time:
+```bash
+node src/set-saia-transport.mjs responses
+node src/set-saia-transport.mjs chat-completions
+```
+
+#### Specifying Transport During Initial Installation
+Pass `--transport` when running the installer:
+```bash
+bash install.sh --transport responses
+```
+
+### API Key Command
+
+Instead of storing plain-text API keys in environment variables or configuration files, you can configure `"apiKeyCommand"` in `~/.config/opencode/saia.json` to fetch your key dynamically from a password manager or CLI utility:
+
+```json
+{
+  "apiKeyCommand": ["op", "read", "op://Personal/SAIA/credential"]
+}
+```
+
+Common examples:
+- **1Password CLI**: `["op", "read", "op://Personal/SAIA/credential"]`
+- **macOS Keychain**: `["security", "find-generic-password", "-a", "username", "-s", "saia_api_key", "-w"]`
+- **Bitwarden CLI**: `"bw get notes saia-api-key"`
+- **pass (Password Store)**: `"pass show saia/api-key"`
+
+When configured, the plugin executes the command on startup to retrieve your key securely in memory without persisting it to disk.
+
 ### LiteLLM Proxy (Optional)
 
 If you have a LiteLLM proxy running (e.g., with SAIA models configured), you can route all requests through it for caching, rate limiting, and fallback support:
