@@ -143,7 +143,7 @@ The plugin includes 16 SAIA models, fetched live from the API and categorized au
 
 | Category | Models | Description |
 |---|---|---|
-| **Reasoning** | Qwen3.5 397B/122B, GLM-4.7 | Chain-of-thought models with `can_reason: true` in config |
+| **Reasoning** | Qwen3.5 397B/122B, Qwen3-30B | Chain-of-thought models with `can_reason: true` in config |
 | **Coder** | Qwen3 Coder Next | Code-specialized models |
 | **Vision** | Qwen3.6 35B, Gemma 4 31B, Qwen3 Omni 30B, MedGemma 27B | Vision/multimodal models with `attachment: true` |
 | **Agentic** | GLM-4.7, Devstral 2 123B, Mistral Medium 3.5 128B | Strong tool-use and agentic coding |
@@ -165,7 +165,7 @@ The plugin generates convenience aliases for quick model selection without memor
 | `saia/best-for-vision` | qwen3.6-35b | Image analysis, multimodal |
 | `saia/best-for-agentic` | glm-4.7 | Agentic coding, tool use |
 | `saia/best-quality` | qwen3.5-397b | Highest quality output |
-| `saia/fastest-reasoning` | deepseek-v4-flash-0731 | Fast reasoning with low cost |
+| `saia/fastest-reasoning` | qwen3-30b-a3b-instruct-2507 | Fast reasoning with low cost |
 | `saia/fastest` | meta-llama-3.1-8b | Fastest response time |
 | `saia/budget` | deepseek-v4-flash-0731 | Lowest cost |
 

@@ -354,7 +354,7 @@ describe() {
 can_reason() {
     local id="$1"
     case "$id" in
-        *thinking*|*r1*|qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.6-35b-a3b|glm-4.7|qwen3-30b-a3b-instruct-2507)
+        *thinking*|*r1*|qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3-30b-a3b-instruct-2507)
             echo "true"
             ;;
         *)
