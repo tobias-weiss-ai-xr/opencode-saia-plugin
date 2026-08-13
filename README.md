@@ -3,10 +3,9 @@
 OpenCode plugin that adds all [SAIA](https://chat-ai.academiccloud.de) (GWDG Chat AI) models to your OpenCode setup.
 
 **Repositories:** 
-- **Primary (maintained):** [Codeberg](https://codeberg.org/graphwiz-ai/opencode-saia-plugin) (this repo)
+- **Primary (active development):** [GitHub](https://github.com/tobias-weiss-ai-xr/opencode-saia-plugin)
+- **Legacy mirror:** [Codeberg](https://codeberg.org/graphwiz-ai/opencode-saia-plugin) (synced periodically, PRs welcome but development happens on GitHub)
 - **Original (reference):** [GitLab](https://gitlab-ce.gwdg.de/jlewis/opencode-saia-plugin) (jlewis/GWDG)
-
-Both repos share a common origin (commit f2c758b) and sync frequently. This Codeberg version focuses on model categorization, rich metadata, and cross-platform installation scripts.
 
 ## What It Does
 
