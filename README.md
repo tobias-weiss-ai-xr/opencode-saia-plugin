@@ -140,18 +140,16 @@ Restart OpenCode after generating the config.
 
 ## Available Models
 
-The plugin includes 28 SAIA models, fetched live from the API and categorized automatically:
+The plugin includes 16 SAIA models, fetched live from the API and categorized automatically:
 
 | Category | Models | Description |
 |---|---|---|
-| **Reasoning** | Qwen3.5 397B/122B/35B/27B, Qwen3 30B Thinking, DeepSeek R1 70B, **DeepSeek V4 Flash**, GLM-4.7, Qwen3 235B | Chain-of-thought models with `can_reason: true` in config |
-| **Coder** | Qwen3 Coder 30B | Code-specialized models |
-| **Vision** | Qwen3 VL 30B, InternVL 3.5 30B, Qwen3 Omni 30B | Vision-language models with `attachment: true` for image/file input |
-| **Medical** | MedGemma 27B | Medical domain specialist |
-| **Research** | Teuken 7B, SauerkrautLM 70B | German/European research models |
-| **Agentic** | GLM-4.7, Devstral 2 123B | Strong tool-use and agentic coding |
-| **Large Context** | Qwen3 235B, Mistral Large 3 675B, GPT-OSS 120B | 128k+ context windows |
-| **General** | Llama 3.3 70B, Gemma 3/4, Qwen3 32B, Apertus 70B, etc. | General-purpose models |
+| **Reasoning** | Qwen3.5 397B/122B, GLM-4.7 | Chain-of-thought models with `can_reason: true` in config |
+| **Coder** | Qwen3 Coder Next | Code-specialized models |
+| **Vision** | Qwen3.6 35B, Gemma 4 31B, Qwen3 Omni 30B, MedGemma 27B | Vision/multimodal models with `attachment: true` |
+| **Agentic** | GLM-4.7, Devstral 2 123B, Mistral Medium 3.5 128B | Strong tool-use and agentic coding |
+| **Large Context** | OpenAI GPT-OSS 120B, Mistral Medium 3.5 128B | 128k+ context windows |
+| **General** | Qwen3.6 27B, Qwen3 30B, DeepSeek V4 Flash, Apertus 70B, Llama 3.1 8B, etc. | General-purpose models |
 
 Default model: `saia/glm-4.7`
 
@@ -163,15 +161,14 @@ The plugin generates convenience aliases for quick model selection without memor
 
 | Alias | Points To | Use Case |
 |---|---|---|
-| `saia/best-for-coding` | qwen3-coder-30b | Code-specialized tasks |
-| `saia/best-for-reasoning` | deepseek-r1-70b | Complex reasoning, math, planning |
-| `saia/best-for-vision` | internvl3.5-30b | Image analysis, multimodal |
+| `saia/best-for-coding` | qwen3-coder-next | Code-specialized tasks |
+| `saia/best-for-reasoning` | qwen3.5-397b | Complex reasoning, math, planning |
+| `saia/best-for-vision` | qwen3.6-35b | Image analysis, multimodal |
 | `saia/best-for-agentic` | glm-4.7 | Agentic coding, tool use |
 | `saia/best-quality` | qwen3.5-397b | Highest quality output |
 | `saia/fastest-reasoning` | deepseek-v4-flash-0731 | Fast reasoning with low cost |
-| `saia/fastest` | llama-3.1-8b | Fastest response time |
-| `saia/budget` | llama-3.1-8b | Lowest cost |
-| `saia/best-german` | sauerkrautlm-70b | German language tasks |
+| `saia/fastest` | meta-llama-3.1-8b | Fastest response time |
+| `saia/budget` | deepseek-v4-flash-0731 | Lowest cost |
 
 Usage in OpenCode: `/model saia/best-for-coding`
 

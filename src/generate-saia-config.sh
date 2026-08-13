@@ -27,6 +27,14 @@ if [[ -n "$LITELLM_PROXY_URL" ]]; then
     USE_PROXY=true
 fi
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+print_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
 # Profile support — select different model sets for production/dev/budget
 SAIA_PROFILE="${SAIA_PROFILE:-production}"
 PROFILE_CONFIG=""
@@ -57,11 +65,6 @@ configure_profile() {
 }
 
 configure_profile "$SAIA_PROFILE"
-
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
 
 print_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
@@ -145,8 +148,11 @@ fi
 categorize() {
     local id="$1"
     case "$id" in
-        *thinking*|*r1*|deepseek*)
+        *thinking*|*r1*)
             echo "reasoning"
+            ;;
+        deepseek-v4-flash*)
+            echo "general"
             ;;
         *coder*)
             echo "coder"
@@ -160,10 +166,10 @@ categorize() {
         teuken*|sauerkraut*)
             echo "research"
             ;;
-        glm-4.7|devstral*)
+        glm-4.7|devstral*|mistral-medium*)
             echo "agentic"
             ;;
-        *120b|*235b|*675b|mistral-large*)
+        *120b|*128b|*235b|*675b|mistral-medium*|mistral-large*)
             echo "large-context"
             ;;
         *)
@@ -179,12 +185,12 @@ get_cost_per_1k_tokens() {
     local id="$1"
     case "$id" in
         *8b*)                     echo "0.003" ;;   # ~$3/1M (small models)
-        *7b*|gemma-3-27b*)        echo "0.006" ;;   # ~$6/1M
-        *31b*|*32b*|teuken*)      echo "0.012" ;;   # ~$12/1M
+        *7b*)                      echo "0.006" ;;   # ~$6/1M
+        *31b*|*32b*)                echo "0.012" ;;   # ~$12/1M
         *35b-a3b*|*30b*)          echo "0.018" ;;   # ~$18/1M
         *70b*)                    echo "0.025" ;;   # ~$25/1M
         *122b*)                   echo "0.038" ;;   # ~$38/1M
-        *235b*|mistral-large*)   echo "0.075" ;;   # ~$75/1M
+        *120b*|*128b*)             echo "0.075" ;;   # ~$75/1M
         *397b*|*675b*)            echo "0.125" ;;   # ~$125/1M (flagship models)
         deepseek-v4-flash*)       echo "0.008" ;;   # ~$8/1M (lightweight reasoning)
         *)                        echo "0.015" ;;   # default estimate
@@ -194,17 +200,14 @@ get_cost_per_1k_tokens() {
 get_estimated_latency_ms() {
     local id="$1"
     case "$id" in
-        *8b*|*7b|gemma-3*)        echo "fast" ;;    # <100ms TTFT
-        *27b*|teuken*|apertus*)   echo "moderate" ;; # ~150ms
+        *8b*|*7b*)                 echo "fast" ;;    # <100ms TTFT
+        *27b*|apertus*|deepseek-v4-flash*) echo "moderate" ;; # ~150ms
         *31b*|*32b*)              echo "moderate" ;; # ~180ms
-        *35b-a3b*|*30b*)          echo "moderate" ;; # ~200ms
+        *35b-a3b*|*30b*|*128b*)    echo "moderate" ;; # ~200ms
         qwen3.5-122b*)            echo "slow" ;;    # ~300ms (MoE routing)
-        qwen3-coder*)             echo "fast" ;;    # optimized for coding
+        qwen3-coder-next)         echo "fast" ;;    # optimized for coding
         glm-4.7)                  echo "fast" ;;    # optimized for agentic use
-        deepseek-r1*)             echo "slow" ;;    # reasoning overhead
-        deepseek-v4-flash*)       echo "fast" ;;    # optimized for speed
-        *70b*)                    echo "slow" ;;    # ~350ms
-        *235b*|mistral-large*)   echo "slow" ;;    # ~400ms
+        *70b*|*120b*)             echo "slow" ;;    # ~350ms
         *397b*|*675b*)            echo "very-slow" ;; # ~500ms+ (maximum quality)
         *)                        echo "moderate" ;; # default
     esac
@@ -214,19 +217,14 @@ get_recommended_for() {
     local id="$1"
     case "$id" in
         *coder*)                 echo "agentic-coding,code-refactor,debug" ;;
-        *vision*|*vl-*|internvl*)  echo "image-analysis,multimodal,diagrams" ;;
-        *thinking*|*r1*|deepseek-r1*) echo "complex-reasoning,math,planning" ;;
+        *thinking*|*r1*)          echo "complex-reasoning,math,planning" ;;
         deepseek-v4-flash*)       echo "fast-reasoning,general-purpose,cost-optimization" ;;
-        glm-4.7|devstral*)       echo "agentic-coding,tool-use,architecture" ;;
+        glm-4.7|devstral*|mistral-medium*) echo "agentic-coding,tool-use,architecture" ;;
         medical*)                echo "medical-qa,healthcare,biomedical" ;;
-        teuken*|sauerkraut*)     echo "german-text,research,academic" ;;
-        qwen3.5-397b*)           echo "complex-reasoning,high-quality- writing" ;;
-        qwen3-5-122b*)           echo "balanced-response,fast-reasoning" ;;
-        qwen3-5-35b*)            echo "fast-reasoning,general-purpose" ;;
-        qwen3-5-27b*)            echo "efficient-reasoning,cost-optimization" ;;
+        qwen3.5-397b*)           echo "complex-reasoning,high-quality-writing" ;;
+        qwen3.5-122b*)           echo "balanced-response,fast-reasoning" ;;
         *8b*)                    echo "quick-edits,summarization,cost-optimization" ;;
-        *70b*|*675b*)            echo "large-context,document-analysis,complex-tasks" ;;
-        *235b*)                  echo "large-batch,context-heavy,multiple-files" ;;
+        *70b*|*120b*)            echo "large-context,document-analysis,complex-tasks" ;;
         *)                       echo "general-purpose,chat,daily-tasks" ;;
     esac
 }
@@ -257,16 +255,13 @@ include_in_profile_production() {
 
     # Production: Highest quality models for critical work
     case "$id" in
-        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3-235b-a22b|mistral-large-3-675b|glm-4.7|devstral-2*)
-            echo "true"
-            ;;
-        deepseek-r1*|*thinking*)
+        qwen3.5-397b-a17b|qwen3.5-122b-a10b|openai-gpt-oss-120b|mistral-medium-3.5-128b|glm-4.7|devstral-2*)
             echo "true"
             ;;
         deepseek-v4-flash*)
             echo "true"
             ;;
-        *coder*|qwen3-vl*|internvl*)
+        *coder*)
             echo "true"
             ;;
         *)
@@ -281,13 +276,10 @@ include_in_profile_development() {
 
     # Development: Balanced models for active development
     case "$id" in
-        qwen3.5-35b-a3b|qwen3-5-27b|qwen3-32b|llama-3.3-70b|gemma-3-27b*|gemma-4-31b*)
+        qwen3.6-35b-a3b|qwen3.6-27b|qwen3-coder-next|glm-4.7|deepseek-v4-flash*|mistral-medium-3.5-128b)
             echo "true"
             ;;
-        qwen3-coder*|glm-4.7|deepseek-v4-flash*)
-            echo "true"
-            ;;
-        *vl-*|*vision*|internvl*)
+        gemma-4-31b-it|apertus-70b*)
             echo "true"
             ;;
         *)
@@ -301,10 +293,10 @@ include_in_profile_budget() {
 
     # Budget: Cheapest and fastest models only
     case "$id" in
-        llama-3.1-8b*|teuken-7b*|qwen3-30b-a3b-instruct*|deepseek-v4-flash*)
+        meta-llama-3.1-8b-instruct|qwen3-30b-a3b-instruct-2507|deepseek-v4-flash-0731)
             echo "true"
             ;;
-        gemma-3-27b*)
+        qwen3.6-27b)
             echo "true"
             ;;
         *)
@@ -320,10 +312,10 @@ get_profile_default_model() {
             echo "glm-4.7"
             ;;
         development|dev)
-            echo "qwen3.5-35b-a3b"
+            echo "qwen3.6-35b-a3b"
             ;;
         budget)
-            echo "llama-3.1-8b-instruct"
+            echo "deepseek-v4-flash-0731"
             ;;
         *)
             echo "glm-4.7"
@@ -337,31 +329,20 @@ describe() {
     case "$id" in
         qwen3.5-397b-a17b)       echo "Qwen3.5 397B MoE (128k ctx) — Flagship reasoning, best quality" ;;
         qwen3.5-122b-a10b)       echo "Qwen3.5 122B MoE (128k ctx) — Strong reasoning, fast" ;;
-        qwen3.5-35b-a3b)         echo "Qwen3.5 35B MoE (128k ctx) — Fast reasoning" ;;
-        qwen3.5-27b)             echo "Qwen3.5 27B Dense (128k ctx) — Efficient reasoning" ;;
-        qwen3.6-35b-a3b)         echo "Qwen3.6 35B MoE — Vision, reasoning, agentic coding" ;;
-        qwen3-235b-a22b)         echo "Qwen3 235B MoE (128k ctx) — Large context, strong generalist" ;;
-        qwen3-32b)               echo "Qwen3 32B Dense (128k ctx) — Balanced" ;;
-        qwen3-coder-30b-a3b-instruct) echo "Qwen3 Coder 30B — Code-specialized" ;;
+        qwen3.6-27b)             echo "Qwen3.6 27B Dense — Efficient generalist" ;;
+        qwen3.6-27b)             echo "Qwen3.6 27B Dense — Efficient generalist" ;;
+        qwen3.6-35b-a3b)         echo "Qwen3.6 35B MoE (128k ctx) — Vision, reasoning, agentic coding" ;;
+        qwen3-coder-next)         echo "Qwen3 Coder Next — Code-specialized" ;;
         qwen3-omni-30b-a3b-instruct) echo "Qwen3 Omni 30B — Multimodal (text+audio)" ;;
-        qwen3-vl-30b-a3b-instruct)   echo "Qwen3 VL 30B — Vision-language" ;;
-        qwen3-30b-a3b-thinking-2507) echo "Qwen3 30B Thinking — Chain-of-thought reasoning" ;;
         qwen3-30b-a3b-instruct-2507) echo "Qwen3 30B Instruct — General purpose" ;;
-        mistral-large-3-675b-instruct-2512) echo "Mistral Large 3 675B (128k ctx) — Largest model, strong generalist" ;;
+        mistral-medium-3.5-128b) echo "Mistral Medium 3.5 128B — Balanced large context model" ;;
         openai-gpt-oss-120b)     echo "OpenAI GPT-OSS 120B — Large context model" ;;
         devstral-2-123b-instruct-2512) echo "Devstral 2 123B — Mistral's agentic coder" ;;
         glm-4.7)                 echo "GLM-4.7 (128k ctx) — Agentic coding, strong tool use" ;;
-        deepseek-r1-distill-llama-70b) echo "DeepSeek R1 Distill 70B — Reasoning (Llama base)" ;;
         deepseek-v4-flash-0731)    echo "DeepSeek V4 Flash (128k ctx) — Fast reasoning, lightweight" ;;
-        gemma-3-27b-it)          echo "Gemma 3 27B — Google lightweight model" ;;
         gemma-4-31b-it)          echo "Gemma 4 31B — Google latest" ;;
-        llama-3.3-70b-instruct)  echo "Llama 3.3 70B — Meta strong generalist" ;;
-        llama-3.1-8b-instruct)   echo "Llama 3.1 8B — Meta fast lightweight" ;;
         apertus-70b-instruct-2509) echo "Apertus 70B — Open-source instruct model" ;;
-        internvl3.5-30b-a3b)     echo "InternVL 3.5 30B — Vision-language" ;;
         medgemma-27b-it)         echo "MedGemma 27B — Medical domain specialist" ;;
-        teuken-7b-instruct-research) echo "Teuken 7B — German research model" ;;
-        llama-3.1-sauerkrautlm-70b-instruct) echo "SauerkrautLM 70B — German-enhanced Llama" ;;
         meta-llama-3.1-8b-instruct) echo "Llama 3.1 8B — Meta lightweight" ;;
         *)
             # Fallback: capitalize category
@@ -373,7 +354,7 @@ describe() {
 can_reason() {
     local id="$1"
     case "$id" in
-        *thinking*|*r1*|deepseek-r1*|deepseek-v4-flash*|qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.5-35b-a3b|qwen3.5-27b|qwen3.6-35b-a3b|glm-4.7|qwen3-235b-a22b|qwen3-30b-a3b-instruct-2507)
+        *thinking*|*r1*|qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.6-35b-a3b|glm-4.7|qwen3-30b-a3b-instruct-2507)
             echo "true"
             ;;
         *)
@@ -385,13 +366,13 @@ can_reason() {
 get_context_window() {
     local id="$1"
     case "$id" in
-        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.5-35b-a3b|qwen3.5-27b|qwen3.6-35b-a3b|qwen3-235b-a22b|qwen3-32b|mistral-large-3-675b-instruct-2512|glm-4.7|llama-3.3-70b-instruct|llama-3.1-8b-instruct|llama-3.1-sauerkrautlm-70b-instruct|meta-llama-3.1-8b-instruct|apertus-70b-instruct-2509|devstral-2-123b-instruct-2512|openai-gpt-oss-120b|deepseek-r1-distill-llama-70b|deepseek-v4-flash-0731)
+        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.6-35b-a3b|qwen3.6-27b|glm-4.7|meta-llama-3.1-8b-instruct|apertus-70b-instruct-2509|devstral-2-123b-instruct-2512|openai-gpt-oss-120b|mistral-medium-3.5-128b|deepseek-v4-flash-0731)
             echo "128000"
             ;;
-        gemma-3-27b-it|gemma-4-31b-it|qwen3-coder-30b-a3b-instruct|qwen3-30b-a3b-instruct-2507|qwen3-30b-a3b-thinking-2507)
+        gemma-4-31b-it|qwen3-coder-next|qwen3-30b-a3b-instruct-2507)
             echo "131072"
             ;;
-        qwen3-vl-30b-a3b-instruct|internvl3.5-30b-a3b|medgemma-27b-it|qwen3-omni-30b-a3b-instruct|teuken-7b-instruct-research)
+        medgemma-27b-it|qwen3-omni-30b-a3b-instruct)
             echo "32768"
             ;;
         *)
@@ -403,7 +384,7 @@ get_context_window() {
 supports_attachment() {
     local id="$1"
     case "$id" in
-        qwen3-vl-30b-a3b-instruct|internvl3.5-30b-a3b|qwen3.6-35b-a3b|qwen3-omni-30b-a3b-instruct)
+        qwen3.6-35b-a3b|qwen3-omni-30b-a3b-instruct|gemma-4-31b-it|medgemma-27b-it|qwen3.5-397b-a17b|qwen3.5-122b-a10b)
             echo "true"
             ;;
         *)
@@ -415,22 +396,22 @@ supports_attachment() {
 get_output_window() {
     local id="$1"
     case "$id" in
-        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.6-35b-a3b|mistral-large-3-675b-instruct-2512|qwen3-235b-a22b)
+        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.6-35b-a3b|mistral-medium-3.5-128b)
             echo "32768"
             ;;
-        qwen3.5-35b-a3b|qwen3.5-27b|glm-4.7|devstral-2-123b-instruct-2512|qwen3-32b|qwen3-coder-30b-a3b-instruct|deepseek-r1-distill-llama-70b|deepseek-v4-flash-0731)
+        glm-4.7|devstral-2-123b-instruct-2512|qwen3-coder-next|deepseek-v4-flash-0731|qwen3.6-27b)
             echo "16384"
             ;;
-        qwen3-30b-a3b-instruct-2507|qwen3-30b-a3b-thinking-2507)
+        qwen3-30b-a3b-instruct-2507)
             echo "16384"
             ;;
-        gemma-3-27b-it|gemma-4-31b-it|llama-3.3-70b-instruct|apertus-70b-instruct-2509|openai-gpt-oss-120b)
+        gemma-4-31b-it|apertus-70b-instruct-2509|openai-gpt-oss-120b)
             echo "8192"
             ;;
-        internvl3.5-30b-a3b|qwen3-vl-30b-a3b-instruct|qwen3-omni-30b-a3b-instruct|medgemma-27b-it)
+        qwen3-omni-30b-a3b-instruct|medgemma-27b-it)
             echo "4096"
             ;;
-        teuken-7b-instruct-research|llama-3.1-sauerkrautlm-70b-instruct|llama-3.1-8b-instruct|meta-llama-3.1-8b-instruct)
+        meta-llama-3.1-8b-instruct)
             echo "4096"
             ;;
         *)
@@ -458,7 +439,9 @@ fi
 
 print_info "Generating opencode.json..."
 
-cat > "$MASTER_CONFIG" <<'HEADER'
+DEFAULT_MODEL=$(get_profile_default_model "$PROFILE_CONFIG")
+
+sed 's/__DEFAULT_MODEL__/'"$DEFAULT_MODEL"'/g' > "$MASTER_CONFIG" <<'HEADER'
 {
   "$schema": "https://opencode.ai/config.json",
   "permission": {
@@ -480,7 +463,7 @@ cat > "$MASTER_CONFIG" <<'HEADER'
     "mymcp_*": "ask"
   },
   "formatter": {},
-  "model": "saia/$(get_profile_default_model "$PROFILE_CONFIG")",
+  "model": "saia/__DEFAULT_MODEL__",
   "provider": {
     "saia": {
       "npm": "@ai-sdk/openai-compatible",
@@ -530,15 +513,14 @@ done
 
 # Add model group aliases for easy discovery
 ALIASES=(
-    "best-for-coding:qwen3-coder-30b-a3b-instruct"
-    "best-for-reasoning:deepseek-r1-distill-llama-70b"
-    "best-for-vision:internvl3.5-30b-a3b"
+    "best-for-coding:qwen3-coder-next"
+    "best-for-reasoning:qwen3.5-397b-a17b"
+    "best-for-vision:qwen3.6-35b-a3b"
     "best-for-agentic:glm-4.7"
     "best-quality:qwen3.5-397b-a17b"
-    "fastest:llama-3.1-8b-instruct"
+    "fastest:meta-llama-3.1-8b-instruct"
     "fastest-reasoning:deepseek-v4-flash-0731"
-    "budget:llama-3.1-8b-instruct"
-    "best-german:sauerkrautlm-70b"
+    "budget:deepseek-v4-flash-0731"
 )
 
 for alias_entry in "${ALIASES[@]}"; do
