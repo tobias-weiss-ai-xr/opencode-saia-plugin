@@ -1,5 +1,8 @@
+import { DEFAULT_SAIA_BASE_URL } from "./saia-transport.mjs"
+
 const INTERNAL_SESSION_HEADER = "x-opencode-saia-session"
-const SAIA_ORIGIN = "https://chat-ai.academiccloud.de"
+// Tracks the default host, so a config that never reached the resolver still records quota.
+const SAIA_ORIGIN = new URL(DEFAULT_SAIA_BASE_URL).origin
 const WRAPPED_FETCH = Symbol.for("opencode-saia-plugin.limits-fetch")
 
 function requestURL(input) {

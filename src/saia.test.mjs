@@ -1,6 +1,11 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { createSaiaPlugin } from "./saia.ts"
+import { DEFAULT_SAIA_BASE_URL } from "./saia-transport.mjs"
+
+// Any host the resolver could hand back. These tests cover the plumbing, not which
+// hosts SAIA happens to run, so they must not restate a real hostname.
+const OTHER_BASE_URL = "https://saia.invalid/v1"
 
 const GENERATED_OPTIONS = {
   "enable-tools": true,
@@ -31,8 +36,10 @@ function createHarness({
   config = {},
   apiKey = "test-key",
   transport = { id: "chat-completions", npm: "@ai-sdk/openai-compatible" },
+  baseURL = DEFAULT_SAIA_BASE_URL,
   cached = false,
 } = {}) {
+  const requestedURLs = []
   const warnings = []
   const logs = []
   const metrics = []
@@ -41,8 +48,9 @@ function createHarness({
   let requestCount = 0
 
   const plugin = createSaiaPlugin({
-    async fetch() {
+    async fetch(url) {
       requestCount += 1
+      requestedURLs.push(String(url))
       return new Response(JSON.stringify({ data: models }), { status: 200 })
     },
     async resolveApiKey() {
@@ -50,6 +58,9 @@ function createHarness({
     },
     async resolveTransport() {
       return transport
+    },
+    async resolveBaseURL() {
+      return baseURL
     },
     async readSettings() {
       return settings
@@ -89,6 +100,7 @@ function createHarness({
     logs,
     metrics,
     requestCount: () => requestCount,
+    requestedURLs,
     savedSettings: () => savedSettings,
     cacheOptions: () => cacheOptions,
     warnings,
@@ -104,7 +116,7 @@ test("decorates an empty config in memory with only ready SAIA models", async ()
 
   assert.equal(harness.config.model, "saia/glm-4.7")
   assert.equal(harness.config.provider.saia.npm, "@ai-sdk/openai-compatible")
-  assert.equal(harness.config.provider.saia.options.baseURL, "https://chat-ai.academiccloud.de/v1")
+  assert.equal(harness.config.provider.saia.options.baseURL, DEFAULT_SAIA_BASE_URL)
   assert.equal(harness.config.provider.saia.options.apiKey, "test-key")
   assert.deepEqual(Object.keys(harness.config.provider.saia.models), ["glm-4.7"])
   assert.equal(harness.config.provider.saia.models["glm-4.7"].reasoning, true)
@@ -126,6 +138,37 @@ test("decorates an empty config in memory with only ready SAIA models", async ()
       ["refresh", true],
     ],
   )
+})
+
+test("the responses transport swaps the npm package but not the host", async () => {
+  const harness = createHarness({
+    transport: { id: "responses", npm: "@ai-sdk/openai" },
+  })
+  const hooks = await harness.hooks
+
+  await hooks.config(harness.config)
+
+  assert.equal(harness.config.provider.saia.npm, "@ai-sdk/openai")
+  assert.equal(harness.config.provider.saia.options.baseURL, DEFAULT_SAIA_BASE_URL)
+})
+
+test("a configured baseURL drives both the provider and model discovery", async () => {
+  const harness = createHarness({ baseURL: OTHER_BASE_URL })
+  const hooks = await harness.hooks
+
+  await hooks.config(harness.config)
+
+  assert.equal(harness.config.provider.saia.options.baseURL, OTHER_BASE_URL)
+  assert.deepEqual(harness.requestedURLs, [`${OTHER_BASE_URL}/models`])
+})
+
+test("model discovery follows the default host when nothing is configured", async () => {
+  const harness = createHarness()
+  const hooks = await harness.hooks
+
+  await hooks.config(harness.config)
+
+  assert.deepEqual(harness.requestedURLs, [`${DEFAULT_SAIA_BASE_URL}/models`])
 })
 
 test("preserves direct and proxy provider overlays plus a non-SAIA default", async () => {

@@ -13,10 +13,8 @@ import {
 import { resolveSaiaApiKey } from "./saia-api-key.mjs"
 import { createSaiaLimitsHooks } from "./saia-limits-server.js"
 import { managedModelsFromSettings, readSaiaSettings, updateSaiaSettings } from "./saia-settings.mjs"
-import { resolveSaiaTransport } from "./saia-transport.mjs"
+import { resolveSaiaBaseURL, resolveSaiaTransport } from "./saia-transport.mjs"
 import { normalizeSaiaQwenSystemMessages } from "./saia-system-messages.js"
-
-const ENDPOINT = "https://chat-ai.academiccloud.de/v1/models"
 
 type SaiaModelsResponse = {
   data: Array<Record<string, unknown> & { id: string }>
@@ -36,6 +34,7 @@ export interface SaiaPluginDependencies {
   fetch?: typeof globalThis.fetch
   resolveApiKey?: typeof resolveSaiaApiKey
   resolveTransport?: typeof resolveSaiaTransport
+  resolveBaseURL?: typeof resolveSaiaBaseURL
   readSettings?: typeof readSaiaSettings
   updateSettings?: typeof updateSaiaSettings
   fetchWithCache?: typeof memory.fetchWithCache
@@ -58,6 +57,7 @@ export function createSaiaPlugin(dependencies: SaiaPluginDependencies = {}): Plu
   const fetchImpl = dependencies.fetch ?? globalThis.fetch
   const resolveApiKey = dependencies.resolveApiKey ?? resolveSaiaApiKey
   const resolveTransport = dependencies.resolveTransport ?? resolveSaiaTransport
+  const resolveBaseURL = dependencies.resolveBaseURL ?? resolveSaiaBaseURL
   const readSettings = dependencies.readSettings ?? readSaiaSettings
   const updateSettings = dependencies.updateSettings ?? updateSaiaSettings
   const fetchWithCache = dependencies.fetchWithCache ?? memory.fetchWithCache
@@ -86,9 +86,13 @@ export function createSaiaPlugin(dependencies: SaiaPluginDependencies = {}): Plu
         )
       }
 
+      // Discovery must hit the same host as chat traffic, so the advertised models
+      // match what that host will actually serve.
+      const baseURL = await resolveBaseURL({ onWarning })
+
       const startedAt = Date.now()
       try {
-        const response = await fetchImpl(ENDPOINT, {
+        const response = await fetchImpl(`${baseURL}/models`, {
           headers: { Authorization: `Bearer ${apiKey}` },
           signal: AbortSignal.timeout(3_000),
         })
@@ -142,14 +146,16 @@ export function createSaiaPlugin(dependencies: SaiaPluginDependencies = {}): Plu
       }
 
       const settings = await readSettings({ onWarning })
-      const [context, preferences, transport] = await Promise.all([
+      const [context, preferences, transport, baseURL] = await Promise.all([
         getContext(),
         getPreferences(),
         resolveTransport({ onWarning }),
+        resolveBaseURL({ onWarning }),
       ])
       const { modelIDs, managedModels } = decorateSaiaConfig(config, {
         models: result.data.data,
         transport,
+        baseURL,
         preferredModel: preferredModelFrom(context, preferences),
         managedModels: managedModelsFromSettings(settings),
       })

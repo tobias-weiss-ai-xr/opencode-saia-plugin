@@ -1,6 +1,6 @@
 import { buildSaiaModels } from "./saia-model-metadata.js"
+import { DEFAULT_SAIA_BASE_URL } from "./saia-transport.mjs"
 
-export const SAIA_BASE_URL = "https://chat-ai.academiccloud.de/v1"
 export const SAIA_API_KEY_PLACEHOLDER = "{env:SAIA_API_KEY}"
 
 function isRecord(value) {
@@ -84,6 +84,7 @@ export function parseSaiaModelsResponse(value, { onWarning = console.warn } = {}
 export function decorateSaiaConfig(config, {
   models,
   transport,
+  baseURL = DEFAULT_SAIA_BASE_URL,
   preferredModel,
   managedModels = {},
 } = {}) {
@@ -107,15 +108,18 @@ export function decorateSaiaConfig(config, {
   }
 
   const existingOptions = isRecord(existingProvider.options) ? existingProvider.options : {}
+
   config.provider = providers
   config.provider.saia = {
     ...existingProvider,
     npm: transport.npm,
     name: existingProvider.name ?? "SAIA",
     options: {
-      baseURL: SAIA_BASE_URL,
       apiKey: SAIA_API_KEY_PLACEHOLDER,
       ...existingOptions,
+      // Spread first so an explicit opencode.json baseURL still wins, but re-apply the
+      // resolved value when the overlay only carries the key with an undefined value.
+      baseURL: existingOptions.baseURL ?? baseURL,
     },
     models: retainedModels,
   }
