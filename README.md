@@ -173,13 +173,33 @@ When configured, the plugin executes the command on startup to retrieve your key
 
 ### LiteLLM Proxy (Optional)
 
-If you have a LiteLLM proxy running (e.g., with SAIA models configured), you can route all requests through it for caching, rate limiting, and fallback support:
+If you run a LiteLLM proxy already configured with your SAIA API key and routing for SAIA models, you can point OpenCode at your proxy for central key management, caching, fallback routing, and multi-agent usage tracking.
 
-```bash
-export LITELLM_PROXY_URL=http://your-proxy:4000/v1
-```
+#### Why use this plugin with LiteLLM?
 
-Then regenerate the config. The plugin will use the proxy URL instead of the direct SAIA API. Start OpenCode in any project — the plugin runs automatically on startup.
+While OpenCode can connect to LiteLLM directly as a generic OpenAI-compatible provider, using this plugin provides additional SAIA-specific features:
+- **Live TUI Quota Counter**: Reads forwarded `x-ratelimit-remaining-*` and `llm_provider-x-ratelimit-remaining-*` headers to display live remaining quota (`27/m · 117/h · 519/d · 2.5k/mo`) in OpenCode's prompt line.
+- **SAIA Qwen System-Message Normalization**: Automatically merges multi-part system prompts into a single message as required by SAIA's Qwen backends to prevent `400 Bad Request` errors.
+- **Dynamic Model Discovery & Capability Flags**: Queries `/v1/models` from your proxy and automatically flags reasoning (`thought`) and vision/attachment capabilities in OpenCode.
+- **In-Memory Key Loading**: Supports retrieving proxy API keys dynamically from macOS Keychain, 1Password (`op`), or Bitwarden via `apiKeyCommand`.
+
+#### Configuring the Proxy Endpoint
+
+There are two ways to connect, depending on how you use OpenCode:
+
+1. **Runtime Plugin (Recommended)**:
+   Configure the installed plugin once. This dynamically routes both chat requests and live model discovery through LiteLLM at runtime without needing to generate or rebuild static config files:
+   ```bash
+   node ~/.config/opencode/plugins/saia/saia-endpoint.mjs --host http://your-proxy:4000/v1
+   ```
+   *(Or set `"baseURL": "http://your-proxy:4000/v1"` in `~/.config/opencode/saia.json`)*.
+
+2. **Static Config Generation (Legacy / Standalone)**:
+   If you use shell scripts to generate a static `opencode.json` file instead of using the dynamic plugin runtime, pass the `LITELLM_PROXY_URL` environment variable to the generator:
+   ```bash
+   export LITELLM_PROXY_URL=http://your-proxy:4000/v1
+   bash src/generate-saia-config.sh
+   ```
 
 ## Quick Start
 

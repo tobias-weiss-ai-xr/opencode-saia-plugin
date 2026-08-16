@@ -25,6 +25,9 @@ A: Yes. Set `SAIA_PROFILE=dev` or `SAIA_PROFILE=budget` before running `generate
 **Q: Can I use the plugin without the SAIA API?**
 A: Yes, if you have Ollama running locally. Set `OLLAMA_BASE_URL=http://localhost:11434` and the plugin will fetch models from your local Ollama instance.
 
+**Q: Do I need this plugin if I already route through a LiteLLM proxy?**
+A: OpenCode can connect to LiteLLM directly as a generic provider, but using this plugin with your LiteLLM proxy adds: (1) live TUI prompt-bar quota countdowns from forwarded rate-limit headers, (2) automatic Qwen system message normalization required by SAIA's backend, (3) automatic model discovery with reasoning and attachment capability flags, and (4) in-memory key loading via `apiKeyCommand`. You can point the plugin to your LiteLLM proxy with `node ~/.config/opencode/plugins/saia/saia-endpoint.mjs --host http://your-proxy:4000/v1`.
+
 **Q: How do I disable auto-refresh?**
 A: Auto-refresh is already disabled. The plugin caches model lists for 24 hours. To force a refresh, trigger the `saia-refresh` skill or delete `~/.cache/saia/models.json`.
 
