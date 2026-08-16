@@ -82,18 +82,76 @@ The plugin supports two SAIA API transports:
 - **Chat Completions API** (`chat-completions`, default): uses `@ai-sdk/openai-compatible` targeting `/v1/chat/completions`. Recommended for standard OpenCode workflows, tool calling, and maximum model compatibility.
 - **Responses API** (`responses`): uses `@ai-sdk/openai` targeting `/v1/responses`. Useful when routing through API gateways or proxies that mandate the OpenAI Responses API format.
 
-#### Switching Transport for Installed Plugin
-If the plugin is already installed in `~/.config/opencode/plugins/saia`, switch transport dynamically at any time:
+The transport selects only the client package. It does **not** constrain which SAIA host you talk to — see [Endpoint Selection](#endpoint-selection).
+
+#### Switching Transport for an Installed Plugin
+Use the endpoint command — it lives inside the installed runtime, so it works without the
+source checkout:
 ```bash
-node src/set-saia-transport.mjs responses
-node src/set-saia-transport.mjs chat-completions
+node ~/.config/opencode/plugins/saia/saia-endpoint.mjs --transport responses
+node ~/.config/opencode/plugins/saia/saia-endpoint.mjs --transport chat-completions
 ```
+From a checked-out repository, use `node src/saia-endpoint.mjs` instead. Restart OpenCode
+afterwards. See [Endpoint & Transport Command](#endpoint--transport-command) for the full
+set of options.
 
 #### Specifying Transport During Initial Installation
 Pass `--transport` when running the installer:
 ```bash
 bash install.sh --transport responses
 ```
+
+### Endpoint Selection
+
+SAIA answers on two hostnames, `chat-ai.academiccloud.de` (the default) and
+`saia.gwdg.de`. Both serve `/v1/chat/completions` and `/v1/responses`, so either host
+works with either transport.
+
+Switch with the endpoint command:
+
+```bash
+node ~/.config/opencode/plugins/saia/saia-endpoint.mjs --host gwdg
+```
+
+...or set `baseURL` in `~/.config/opencode/saia.json` by hand:
+
+```json
+{
+  "baseURL": "https://saia.gwdg.de/v1"
+}
+```
+
+This drives both chat traffic and model discovery, so the two always agree on which host
+is being used. An explicit `provider.saia.options.baseURL` in `opencode.json` still takes
+precedence over both, and `LITELLM_PROXY_URL` overrides the URL written by
+`generate-saia-config.sh`.
+
+### Endpoint & Transport Command
+
+`saia-endpoint.mjs` reads and writes both settings, and reports which values are still
+defaults:
+
+```bash
+node ~/.config/opencode/plugins/saia/saia-endpoint.mjs --show
+```
+```text
+transport: chat-completions (default: chat-completions)
+  package: @ai-sdk/openai-compatible
+  baseURL: https://chat-ai.academiccloud.de/v1 (default: https://chat-ai.academiccloud.de/v1)
+   config: /home/you/.config/opencode/saia.json
+```
+
+| Flag | Values |
+|---|---|
+| `--transport` | `chat-completions` (default) or `responses` |
+| `--host` / `--base-url` | `academiccloud` (default), `gwdg`, or any URL |
+| `--reset-host` | drop the host override, return to the default |
+| `--show` | print the current selection without changing it |
+
+The two settings are independent — any transport works with any host. Other keys in
+`saia.json` (`apiKeyCommand`, `managedModels`) are preserved. Restart OpenCode after a
+change. The `saia-endpoint` skill wraps this command if you prefer to ask OpenCode
+directly.
 
 ### API Key Command
 
@@ -313,6 +371,7 @@ If validation fails, the script will show detailed error messages to help you fi
 | `.opencode/skills/saia-optimize.md` | Model optimization / recommendation skill |
 | `.opencode/skills/saia-switch-profile.md` | Profile switcher skill (production/dev/budget) |
 | `.opencode/skills/saia-memory-clear.md` | Clear all SAIA memory skill |
+| `.opencode/skills/saia-endpoint.md` | Transport / host switcher skill |
 | `schema/opencode.schema.json` | JSON schema for configuration validation |
 | `package.json` | Node.js dependencies (`bleedingEdge` only) |
 | `tsconfig.json` | TypeScript configuration (`bleedingEdge` only) |
