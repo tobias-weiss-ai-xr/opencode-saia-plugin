@@ -1,12 +1,12 @@
 import { copyFile, chmod, mkdir, realpath, rename, rm } from "node:fs/promises"
-import { homedir } from "node:os"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
 import { installTuiPlugin } from "./install-tui-config.mjs"
 import { SAIA_PLUGIN_ROOT_FILES, SAIA_RUNTIME_FILES } from "./runtime-manifest.mjs"
+import { defaultSaiaConfigDir } from "./saia-settings.mjs"
 
 function defaultConfigDir() {
-  return path.join(homedir(), ".config", "opencode")
+  return defaultSaiaConfigDir()
 }
 
 async function copyRuntimeFile(sourceDir, targetDir, relativePath) {

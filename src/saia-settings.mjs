@@ -6,7 +6,15 @@ function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value)
 }
 
-export function saiaConfigPath(configDir = path.join(homedir(), ".config", "opencode")) {
+// Mirrors the precedence in install.sh, so the installed runtime reads and writes the
+// same saia.json the installer created. Keep the rule here only — duplicating it lets
+// the two drift, which silently splits settings across two directories.
+export function defaultSaiaConfigDir(environment = process.env) {
+  if (environment.OPENCODE_CONFIG_DIR) return environment.OPENCODE_CONFIG_DIR
+  return path.join(environment.XDG_CONFIG_HOME || path.join(homedir(), ".config"), "opencode")
+}
+
+export function saiaConfigPath(configDir = defaultSaiaConfigDir()) {
   return path.join(configDir, "saia.json")
 }
 

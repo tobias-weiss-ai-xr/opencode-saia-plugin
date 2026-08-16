@@ -4,11 +4,14 @@
 import path from "node:path"
 import os from "node:os"
 
+import { DEFAULT_SAIA_BASE_URL } from "./saia-transport.mjs"
+import { defaultSaiaConfigDir } from "./saia-settings.mjs"
+
 const CACHE_DIR = path.join(os.homedir(), ".cache", "saia")
 const CACHE_FILE = path.join(CACHE_DIR, "models.json")
 const USAGE_FILE = path.join(CACHE_DIR, "usage.jsonl")
 const METRICS_FILE = path.join(CACHE_DIR, "metrics.json")
-const PREFERENCES_FILE = path.join(os.homedir(), ".config", "opencode", "saia-preferences.json")
+const PREFERENCES_FILE = path.join(defaultSaiaConfigDir(), "saia-preferences.json")
 const PROJECT_CONTEXT_FILE = path.join(process.cwd(), ".opencode", "saia", "context.json")
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
@@ -239,7 +242,7 @@ const MODELS_CACHE_FILE = path.join(CACHE_DIR, "models-list.json")
  * Does NOT auto-refresh the cache — only detects changes for notification.
  */
 export async function checkForNewModels(
-  apiBaseUrl = "https://chat-ai.academiccloud.de/v1",
+  apiBaseUrl = DEFAULT_SAIA_BASE_URL,
   apiKey?: string,
 ): Promise<ModelDiff> {
   await ensureCacheDir()

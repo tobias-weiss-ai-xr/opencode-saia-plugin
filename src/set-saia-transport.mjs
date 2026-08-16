@@ -1,11 +1,9 @@
 import { realpath } from "node:fs/promises"
-import { homedir } from "node:os"
-import path from "node:path"
 import { pathToFileURL } from "node:url"
 import { isSaiaTransport } from "./saia-transport.mjs"
-import { updateSaiaSettings } from "./saia-settings.mjs"
+import { defaultSaiaConfigDir, updateSaiaSettings } from "./saia-settings.mjs"
 
-export async function setSaiaTransport(transport, configDir = path.join(homedir(), ".config", "opencode")) {
+export async function setSaiaTransport(transport, configDir = defaultSaiaConfigDir()) {
   if (!isSaiaTransport(transport)) {
     throw new Error('Transport must be either "chat-completions" or "responses".')
   }

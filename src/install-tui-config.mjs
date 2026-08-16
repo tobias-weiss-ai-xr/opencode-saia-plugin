@@ -1,8 +1,8 @@
 import { access, mkdir, readFile, realpath, rename, writeFile } from "node:fs/promises"
 import { constants as fsConstants } from "node:fs"
-import { homedir } from "node:os"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
+import { defaultSaiaConfigDir } from "./saia-settings.mjs"
 
 export const TUI_PLUGIN_PATH = "./plugins/saia-limits-tui.tsx"
 
@@ -19,7 +19,7 @@ async function fileExists(file) {
   }
 }
 
-export async function installTuiPlugin(configDir = path.join(homedir(), ".config", "opencode")) {
+export async function installTuiPlugin(configDir = defaultSaiaConfigDir()) {
   await mkdir(configDir, { recursive: true })
   const configPath = path.join(configDir, "tui.json")
   let config = {}
