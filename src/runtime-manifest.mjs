@@ -6,6 +6,7 @@ export const SAIA_RUNTIME_FILES = Object.freeze([
   "runtime-manifest.mjs",
   "saia-api-key.mjs",
   "saia-config.mjs",
+  "saia-endpoint.mjs",
   "saia-limits-server.js",
   "saia-memory.ts",
   "saia-model-metadata.js",
