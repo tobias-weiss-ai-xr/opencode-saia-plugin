@@ -441,7 +441,8 @@ print_info "Generating opencode.json..."
 
 DEFAULT_MODEL=$(get_profile_default_model "$PROFILE_CONFIG")
 
-sed 's/__DEFAULT_MODEL__/'"$DEFAULT_MODEL"'/g' > "$MASTER_CONFIG" <<'HEADER'
+sed -e 's/__DEFAULT_MODEL__/'"$DEFAULT_MODEL"'/g' \
+    -e 's|__API_BASE_URL__|'"$API_BASE_URL"'|g' > "$MASTER_CONFIG" <<'HEADER'
 {
   "$schema": "https://opencode.ai/config.json",
   "permission": {
@@ -469,7 +470,7 @@ sed 's/__DEFAULT_MODEL__/'"$DEFAULT_MODEL"'/g' > "$MASTER_CONFIG" <<'HEADER'
       "npm": "@ai-sdk/openai-compatible",
       "name": "SAIA (GWDG Chat AI)",
       "options": {
-        "baseURL": "https://chat-ai.academiccloud.de/v1",
+        "baseURL": "__API_BASE_URL__",
         "apiKey": "{env:SAIA_API_KEY}"
       },
       "models": {
@@ -595,7 +596,7 @@ jq --arg lu "$LAST_UPDATED" '. + {last_updated: $lu}' "$MASTER_CONFIG" > "${MAST
 print_info "last_updated: $LAST_UPDATED"
 
 if [[ "$USE_PROXY" == "true" ]]; then
-    sed -i "s|https://chat-ai.academiccloud.de/v1|${LITELLM_PROXY_URL}|g" "$MASTER_CONFIG"
+    # The proxy URL is already substituted into the template via API_BASE_URL above.
     print_info "Configured to use LiteLLM proxy: $LITELLM_PROXY_URL"
 fi
 
