@@ -110,3 +110,21 @@ test("parses the CLI forms of both flags alongside a config dir", () => {
   assert.throws(() => parseTuiPluginArgs(["--narrow"]), /--narrow needs a value/)
   assert.throws(() => parseTuiPluginArgs(["--placement", "floating"]), /Invalid "placement"/)
 })
+
+test("recognises its own entry after OpenCode rewrites it to an absolute path", async (t) => {
+  const configDir = await mkdtemp(path.join(tmpdir(), "saia-tui-absolute-"))
+  t.after(() => rm(configDir, { recursive: true, force: true }))
+  const configPath = path.join(configDir, "tui.json")
+
+  await installTuiPlugin(configDir)
+  // What OpenCode does on load: the relative spec comes back absolute.
+  await writeFile(configPath, JSON.stringify({
+    $schema: "https://opencode.ai/tui.json",
+    plugin: [path.join(configDir, "plugins", "saia-limits-tui.tsx")],
+  }, null, 2) + "\n")
+
+  await installTuiPlugin(configDir, { placement: "sidebar" })
+  const plugins = JSON.parse(await readFile(configPath, "utf8")).plugin
+  assert.equal(plugins.length, 1, "an absolute entry is the same registration, not a new one")
+  assert.deepEqual(plugins[0][1], { placement: "sidebar" })
+})

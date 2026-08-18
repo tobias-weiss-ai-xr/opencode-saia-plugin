@@ -22,6 +22,19 @@ function specOf(entry) {
   return Array.isArray(entry) && entry.length > 0 ? entry[0] : entry
 }
 
+/**
+ * Whether an entry registers this widget, compared on the file name rather than
+ * the spec string. OpenCode rewrites a relative spec to an absolute path when
+ * it loads the config, so the entry written as `./plugins/saia-limits-tui.tsx`
+ * comes back as `/home/you/.config/opencode/plugins/saia-limits-tui.tsx`.
+ * Matching the raw strings then finds nothing and appends a second
+ * registration for the same file, and the widget renders twice.
+ */
+function isThisWidget(entry) {
+  const spec = specOf(entry)
+  return typeof spec === "string" && spec.split("/").pop() === TUI_PLUGIN_PATH.split("/").pop()
+}
+
 function optionsOf(entry) {
   const options = Array.isArray(entry) && entry.length > 1 ? entry[1] : undefined
   return options && typeof options === "object" && !Array.isArray(options) ? options : {}
@@ -73,7 +86,7 @@ export async function installTuiPlugin(configDir = defaultSaiaConfigDir(), optio
   }
 
   const plugins = config.plugin ?? []
-  const index = plugins.findIndex((entry) => specOf(entry) === TUI_PLUGIN_PATH)
+  const index = plugins.findIndex(isThisWidget)
 
   // Merge rather than replace: setting one option must not silently drop
   // another set by an earlier run, and an option left out stays as it was.
