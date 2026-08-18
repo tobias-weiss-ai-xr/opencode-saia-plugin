@@ -22,6 +22,7 @@ const PROVIDER_ID = "saia"
 /** Where the runtime overrides live, so they survive a restart. */
 const NARROW_KEY = "saia-limits.narrow"
 const PLACEMENT_KEY = "saia-limits.placement"
+const LAYOUT_KEY = "saia-limits.layout"
 
 type MaybeAssistantMessage = {
   role?: string
@@ -58,16 +59,24 @@ function formatRemaining(value: unknown) {
   return `${thousands.toFixed(1).replace(/\.0$/, "")}k`
 }
 
-/**
- * The windows in the order they are given up: longest first. A month's budget
- * is rarely the reason a request fails; the minute's very often is.
- */
+/** The windows, in the order they are read. */
 const WINDOWS: ReadonlyArray<readonly [string, string]> = [
   ["m", "minute"],
   ["h", "hour"],
   ["d", "day"],
   ["mo", "month"],
 ]
+
+/**
+ * The order the windows are given up in as the row narrows, least useful first.
+ *
+ * The month is rarely why a request fails, so it goes first. The minute goes
+ * next despite being the tightest number: it refills within a minute, so a low
+ * one resolves itself while you read it. The hour and the day are the ones you
+ * can actually run out of for the rest of a working session, and the hour is
+ * the last to go.
+ */
+const SACRIFICE_ORDER = ["mo", "m", "d"] as const
 
 /** Every window the metadata actually carries, already formatted. */
 export function limitFields(value: unknown) {
@@ -84,14 +93,68 @@ export function displayLimits(value: unknown) {
   return limitFields(value).join(" · ")
 }
 
-/** The candidate renderings for the prompt row, widest first. */
+function unitOf(field: string) {
+  return field.slice(field.indexOf("/") + 1)
+}
+
+/**
+ * The candidate renderings for one line, widest first: the whole set, then the
+ * same set with each sacrificed window removed in turn. Reading order is
+ * preserved throughout — only membership changes.
+ */
 export function tiers(value: unknown) {
   const fields = limitFields(value)
-  const candidates: string[] = []
-  for (let take = fields.length; take >= 1; take -= 1) {
-    candidates.push(fields.slice(0, take).join(" · "))
+  if (fields.length === 0) return [] as string[]
+
+  const candidates = [fields.join(" · ")]
+  let remaining = fields
+  for (const unit of SACRIFICE_ORDER) {
+    if (remaining.length <= 1) break
+    const next = remaining.filter((field) => unitOf(field) !== unit)
+    if (next.length === remaining.length || next.length === 0) continue
+    remaining = next
+    candidates.push(remaining.join(" · "))
   }
   return candidates
+}
+
+/**
+ * Rows for the prompt row. One line under "line", where the tier ladder decides
+ * what survives; as many as it takes under "stack", where nothing is given up
+ * because a short line always fits.
+ */
+export function promptLines(
+  value: unknown,
+  options: { width?: unknown; budget?: number; widgets?: number; narrow?: unknown; layout?: unknown } = {},
+) {
+  const budget = options.budget ?? widgetBudget(options.width ?? 120, options.widgets ?? 2)
+  if (normaliseLayout(options.layout) === "line") {
+    const line = selectTier(tiers(value), budget, { floor: normaliseNarrow(options.narrow) === "always" })
+    return line ? [line] : []
+  }
+  return packRows(limitFields(value), budget)
+}
+
+/**
+ * Fit as many windows on a row as the budget allows, then start another. A
+ * window never gets split across rows and never gets dropped: if one is wider
+ * than the budget it takes a row of its own and the `truncate` backstop deals
+ * with the overflow.
+ */
+export function packRows(fields: readonly string[], budget: number) {
+  const rows: string[] = []
+  let current = ""
+  for (const field of fields) {
+    const candidate = current ? `${current} · ${field}` : field
+    if (current && displayWidth(candidate) > budget) {
+      rows.push(current)
+      current = field
+    } else {
+      current = candidate
+    }
+  }
+  if (current) rows.push(current)
+  return rows
 }
 
 /**
@@ -114,6 +177,22 @@ export function displayWidth(text: unknown) {
  */
 export const NARROW_MODES = ["always", "hide"]
 export const DEFAULT_NARROW = "always"
+
+/**
+ * How the prompt row is laid out.
+ *
+ *   "line"  — one line, narrowing by giving up windows. The default.
+ *   "stack" — one row per group of windows that fits, giving up nothing. The
+ *             prompt box grows a line or two; in exchange every window stays
+ *             readable at any width.
+ */
+export const LAYOUT_MODES = ["line", "stack"]
+export const DEFAULT_LAYOUT = "line"
+
+export function normaliseLayout(value: unknown, fallback: unknown = DEFAULT_LAYOUT) {
+  if (LAYOUT_MODES.includes(value as string)) return value as string
+  return LAYOUT_MODES.includes(fallback as string) ? (fallback as string) : DEFAULT_LAYOUT
+}
 
 export function normaliseNarrow(value: unknown, fallback: unknown = DEFAULT_NARROW) {
   if (NARROW_MODES.includes(value as string)) return value as string
@@ -203,29 +282,18 @@ export function resolveWidth(measuredWidth: unknown, columns: unknown, fallback 
   return fallback
 }
 
-export function renderLimits(value: unknown, options: { width?: unknown; budget?: number; widgets?: number; narrow?: unknown } = {}) {
-  const budget = options.budget ?? widgetBudget(options.width ?? 120, options.widgets ?? 2)
-  return selectTier(tiers(value), budget, { floor: normaliseNarrow(options.narrow) === "always" })
+export function renderLimits(
+  value: unknown,
+  options: { width?: unknown; budget?: number; widgets?: number; narrow?: unknown } = {},
+) {
+  return promptLines(value, { ...options, layout: "line" })[0] ?? ""
 }
 
 /** The sidebar rendering: a header and as many windows as fit per row. */
 export function sidebarLines(value: unknown, budget = SIDEBAR_BUDGET) {
   const fields = limitFields(value)
   if (fields.length === 0) return [] as string[]
-
-  const rows = ["SAIA"]
-  let current = ""
-  for (const field of fields) {
-    const candidate = current ? `${current} · ${field}` : field
-    if (current && displayWidth(candidate) > budget) {
-      rows.push(current)
-      current = field
-    } else {
-      current = candidate
-    }
-  }
-  if (current) rows.push(current)
-  return rows
+  return ["SAIA", ...packRows(fields, budget)]
 }
 
 const plugin: TuiPluginModule = {
@@ -233,7 +301,7 @@ const plugin: TuiPluginModule = {
   tui: async (api: TuiPluginApi, options) => {
     // Three layers, narrowest scope first: a value set at runtime by the
     // command below wins, else the `tui.json` plugin options, else the default.
-    const settings = (options ?? {}) as { narrow?: unknown; placement?: unknown }
+    const settings = (options ?? {}) as { narrow?: unknown; placement?: unknown; layout?: unknown }
     const stored = (key: string) => {
       try {
         return api.kv.get(key)
@@ -252,6 +320,7 @@ const plugin: TuiPluginModule = {
     const [placement, setPlacement] = createSignal(
       normalisePlacement(stored(PLACEMENT_KEY), settings.placement),
     )
+    const [layout, setLayout] = createSignal(normaliseLayout(stored(LAYOUT_KEY), settings.layout))
 
     try {
       api.keymap.registerLayer({
@@ -287,6 +356,21 @@ const plugin: TuiPluginModule = {
               api.ui.toast({ message: `SAIA limits draw: ${next}` })
             },
           },
+          {
+            name: "saia_limits_layout",
+            title: "SAIA limits: toggle stacked rows under the prompt",
+            category: "Plugin",
+            namespace: "palette",
+            slashName: "saia-limits-layout",
+            run() {
+              const next = layout() === "line" ? "stack" : "line"
+              setLayout(next)
+              remember(LAYOUT_KEY, next)
+              api.ui.toast({
+                message: `SAIA limits in the prompt row: ${next === "stack" ? "stacked rows" : "one line"}`,
+              })
+            },
+          },
         ],
       })
     } catch {
@@ -319,21 +403,32 @@ const plugin: TuiPluginModule = {
 
     function SaiaLimitsPrompt(props: SaiaLimitsProps) {
       const width = useWidth()
-      const text = () => {
+      const rows = () => {
         try {
-          if (usesSidebar(width(), api.state.session.get(props.session_id), placement())) return ""
-          return renderLimits(active(props.session_id), { width: width(), narrow: narrow() })
+          if (usesSidebar(width(), api.state.session.get(props.session_id), placement())) return []
+          return promptLines(active(props.session_id), {
+            width: width(),
+            narrow: narrow(),
+            layout: layout(),
+          })
         } catch {
           // A widget must never take the prompt row down with it.
-          return ""
+          return []
         }
       }
 
+      // `height` follows the row count so a stacked block grows the prompt box
+      // and a single line still occupies exactly one row. `truncate` on each
+      // row remains the backstop against a mis-measured width.
       return (
-        <box height={1} minWidth={0} flexShrink={1} overflow="hidden">
-          <text height={1} wrapMode="none" truncate fg={api.theme.current.textMuted}>
-            {text()}
-          </text>
+        <box flexDirection="column" height={rows().length} minWidth={0} flexShrink={1} overflow="hidden">
+          <For each={rows()}>
+            {(row) => (
+              <text height={1} wrapMode="none" truncate fg={api.theme.current.textMuted}>
+                {row}
+              </text>
+            )}
+          </For>
         </box>
       )
     }
@@ -395,6 +490,8 @@ if (typeof module !== "undefined") {
   module.exports.limitFields = limitFields
   module.exports.renderLimits = renderLimits
   module.exports.sidebarLines = sidebarLines
+  module.exports.packRows = packRows
+  module.exports.promptLines = promptLines
   module.exports.tiers = tiers
   module.exports.normalisePlacement = normalisePlacement
   module.exports.usesSidebar = usesSidebar

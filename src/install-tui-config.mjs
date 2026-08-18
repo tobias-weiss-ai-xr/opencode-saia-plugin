@@ -10,6 +10,7 @@ export const TUI_PLUGIN_PATH = "./plugins/saia-limits-tui.tsx"
 export const TUI_PLUGIN_OPTIONS = {
   narrow: ["always", "hide"],
   placement: ["auto", "prompt", "sidebar"],
+  layout: ["line", "stack"],
 }
 
 /**
@@ -101,13 +102,13 @@ async function isMainModule() {
   return import.meta.url === pathToFileURL(await realpath(process.argv[1])).href
 }
 
-/** `--narrow=hide`, `--placement sidebar`; anything else is the config dir. */
+/** `--narrow=hide`, `--placement sidebar`, `--layout stack`; anything else is the config dir. */
 export function parseTuiPluginArgs(argv = []) {
   const options = {}
   let configDir
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index]
-    const match = /^--(narrow|placement)(?:=(.*))?$/.exec(argument)
+    const match = /^--(narrow|placement|layout)(?:=(.*))?$/.exec(argument)
     if (!match) {
       configDir ??= argument
       continue

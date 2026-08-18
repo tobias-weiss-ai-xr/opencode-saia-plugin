@@ -3,13 +3,17 @@ import test from "node:test"
 
 import {
   DEFAULT_NARROW,
+  DEFAULT_LAYOUT,
   DEFAULT_PLACEMENT,
   displayLimits,
   displayWidth,
   isActiveProvider,
   limitFields,
   normaliseNarrow,
+  normaliseLayout,
   normalisePlacement,
+  packRows,
+  promptLines,
   renderLimits,
   selectTier,
   sidebarLines,
@@ -60,31 +64,48 @@ test("takes the provider id as an argument, so the rule is reusable", () => {
 
 /* -- Narrow prompt rows ----------------------------------------------------- */
 
-test("gives up the longest window first, because the minute is what bites", () => {
+test("gives up the month first and the hour last", () => {
+  // The month is rarely why a request fails. The minute goes next despite
+  // being the tightest number, because it refills within a minute — a low one
+  // resolves itself while you read it. The hour and the day are what you can
+  // actually run out of for the rest of a session.
   assert.deepEqual(tiers(LIMITS), [
     "9/m · 199/h · 128/d · 2.7k/mo",
     "9/m · 199/h · 128/d",
-    "9/m · 199/h",
-    "9/m",
+    "199/h · 128/d",
+    "199/h",
   ])
   assert.deepEqual(tiers({}), [])
   assert.deepEqual(tiers(null), [])
 })
 
+test("keeps reading order while membership shrinks", () => {
+  for (const tier of tiers(LIMITS)) {
+    const units = tier.split(" · ").map((field) => field.slice(field.indexOf("/") + 1))
+    assert.deepEqual(units, [...units].sort((a, b) => ["m", "h", "d", "mo"].indexOf(a) - ["m", "h", "d", "mo"].indexOf(b)))
+  }
+})
+
+test("drops nothing when only some windows are reported", () => {
+  assert.deepEqual(tiers({ hour: 199 }), ["199/h"])
+  assert.deepEqual(tiers({ minute: 9, month: 2_700 }), ["9/m · 2.7k/mo", "9/m"])
+})
+
 test("steps down a tier as the terminal narrows", () => {
   const at = (width) => renderLimits(LIMITS, { width })
   assert.equal(at(140), "9/m · 199/h · 128/d · 2.7k/mo")
-  assert.equal(at(120), "9/m · 199/h · 128/d")
-  assert.equal(at(100), "9/m · 199/h")
-  assert.equal(at(92), "9/m")
+  assert.equal(at(120), "9/m · 199/h · 128/d", "the day survives well into a narrow row")
+  assert.equal(at(110), "9/m · 199/h · 128/d")
+  assert.equal(at(100), "199/h · 128/d")
+  assert.equal(at(92), "199/h")
   // Past the last tier the two narrow modes part company.
   assert.equal(renderLimits(LIMITS, { width: 76, narrow: "hide" }), "")
-  assert.equal(at(76), "9/m", "the default keeps the number that matters")
+  assert.equal(at(76), "199/h", "the default keeps the number that matters")
 })
 
 test("keeps the narrowest tier when nothing fits, unless told to hide", () => {
   for (const width of [76, 65, 40, 4]) {
-    assert.equal(renderLimits(LIMITS, { width }), "9/m", `${width} columns, default`)
+    assert.equal(renderLimits(LIMITS, { width }), "199/h", `${width} columns, default`)
     assert.equal(renderLimits(LIMITS, { width, narrow: "hide" }), "", `${width} columns, hide`)
   }
   // No limits stored means nothing shown, in either mode.
@@ -285,4 +306,61 @@ test("registers a command for the narrow-terminal toggle", async () => {
   assert.deepEqual(writes, [["saia-limits.narrow", "hide"]], "default is always, so the first toggle hides")
   toggle.run()
   assert.deepEqual(writes[1], ["saia-limits.narrow", "always"])
+})
+
+/* -- Stacked rows ----------------------------------------------------------- */
+
+test("stacking gives up no window at any width", () => {
+  const rows = (width) => promptLines(LIMITS, { width, layout: "stack" })
+
+  assert.deepEqual(rows(120), ["9/m · 199/h · 128/d", "2.7k/mo"])
+  // 14 columns: `128/d · 2.7k/mo` is 15, so the month takes its own row.
+  assert.deepEqual(rows(100), ["9/m · 199/h", "128/d", "2.7k/mo"])
+  // A budget of nothing still shows everything, one window per row.
+  assert.deepEqual(rows(40), ["9/m", "199/h", "128/d", "2.7k/mo"])
+
+  for (const width of [140, 120, 100, 84, 65, 40]) {
+    assert.equal(rows(width).join(" · "), displayLimits(LIMITS), `${width} columns keeps every window`)
+  }
+})
+
+test("line layout yields at most one row, stacking as many as it needs", () => {
+  assert.equal(promptLines(LIMITS, { width: 120 }).length, 1)
+  assert.equal(promptLines(LIMITS, { width: 120, layout: "line" }).length, 1)
+  assert.ok(promptLines(LIMITS, { width: 40, layout: "stack" }).length > 1)
+  // Nothing stored means no rows at all, in either layout.
+  assert.deepEqual(promptLines(undefined, { width: 120, layout: "stack" }), [])
+  assert.deepEqual(promptLines({}, { width: 120 }), [])
+})
+
+test("packs rows without splitting or dropping a window", () => {
+  assert.deepEqual(packRows(["9/m", "199/h", "128/d"], 11), ["9/m · 199/h", "128/d"])
+  assert.deepEqual(packRows(["9/m", "199/h"], 100), ["9/m · 199/h"])
+  // Wider than the budget: its own row, and the truncate backstop handles it.
+  assert.deepEqual(packRows(["2.7k/mo"], 2), ["2.7k/mo"])
+  assert.deepEqual(packRows([], 40), [])
+})
+
+test("normalises a layout, falling back rather than trusting input", () => {
+  assert.equal(DEFAULT_LAYOUT, "line")
+  assert.equal(normaliseLayout("stack"), "stack")
+  assert.equal(normaliseLayout(undefined), "line")
+  assert.equal(normaliseLayout("diagonal"), "line")
+  assert.equal(normaliseLayout(undefined, "stack"), "stack")
+  assert.equal(normaliseLayout("diagonal", "stack"), "stack")
+})
+
+test("registers a command that toggles stacked rows", async () => {
+  const writes = []
+  let layer
+  await plugin.tui(stubApi({
+    kv: { get: () => undefined, set: (key, value) => writes.push([key, value]) },
+    keymap: { registerLayer: (value) => (layer = value) },
+  }))
+
+  const command = layer.commands.find((item) => item.slashName === "saia-limits-layout")
+  assert.ok(command, "the layout toggle must be reachable from the palette")
+  command.run()
+  command.run()
+  assert.deepEqual(writes, [["saia-limits.layout", "stack"], ["saia-limits.layout", "line"]])
 })
