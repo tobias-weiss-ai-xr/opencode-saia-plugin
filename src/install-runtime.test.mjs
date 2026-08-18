@@ -127,23 +127,30 @@ test("the non-interactive wizard accepts a valid apiKeyCommand without an enviro
   })
 })
 
-test("the installed server and TUI entrypoints import through the installed layout", async () => {
+test("the installed server entrypoint imports through the installed layout", async () => {
+  // The TUI entrypoint is deliberately no longer imported here. It depends on
+  // `@opentui/solid` and `solid-js` for reactive terminal dimensions and
+  // conditional rendering, and those are not resolvable from the installed
+  // layout: OpenCode injects them into the plugin's module graph itself
+  // (`ensureRuntimePluginSupport` in @opentui/solid registers a loader for
+  // exactly those specifiers), which is why its own built-in sidebar plugins
+  // import from "solid-js" too. Bare Node has no such loader, so importing the
+  // widget here would assert a property the host never relies on.
+  //
+  // Slot registration is covered inside the package boundary instead, by
+  // saia-limits-tui.test.mjs, and the widget's pure helpers are covered there
+  // as well. What remains worth checking out here is the server half, which
+  // really does have to load with nothing but Node.
   await withTemporaryHome(async (home) => {
     const configDir = path.join(home, ".config", "opencode")
     const { pluginRoot } = await installRuntime(SOURCE_DIR, configDir)
     const serverURL = pathToFileURL(path.join(pluginRoot, "saia-plugin.ts")).href
-    const tuiURL = pathToFileURL(path.join(pluginRoot, "saia-limits-tui.tsx")).href
     const code = `
       import server from ${JSON.stringify(serverURL)}
-      import tui, { displayLimits } from ${JSON.stringify(tuiURL)}
       const hooks = await server({ client: { app: { async log() {} } } })
-      let registered
-      await tui.tui({ slots: { register(value) { registered = value } } })
       console.log(JSON.stringify({
         config: typeof hooks.config,
         headers: typeof hooks["chat.headers"],
-        slot: typeof registered.slots.session_prompt_right,
-        limits: displayLimits({ minute: 1 }),
       }))
     `
     const { stdout } = await execFile(process.execPath, ["--import", "tsx", "--input-type=module", "-e", code], {
@@ -153,9 +160,10 @@ test("the installed server and TUI entrypoints import through the installed layo
     assert.deepEqual(JSON.parse(stdout), {
       config: "function",
       headers: "function",
-      slot: "function",
-      limits: "1/m",
     })
+
+    // The installer still ships the widget; it is simply loaded by the host.
+    assert.equal(await exists(path.join(pluginRoot, "saia-limits-tui.tsx")), true)
   })
 })
 
