@@ -19,8 +19,9 @@ type SaiaLimitsProps = Pick<TuiSlotProps<"session_prompt_right">, "session_id">
 /** The provider id this widget speaks for. */
 const PROVIDER_ID = "saia"
 
-/** Where the runtime override lives, so it survives a restart. */
+/** Where the runtime overrides live, so they survive a restart. */
 const NARROW_KEY = "saia-limits.narrow"
+const PLACEMENT_KEY = "saia-limits.placement"
 
 type MaybeAssistantMessage = {
   role?: string
@@ -151,16 +152,44 @@ export function widgetBudget(totalWidth: unknown, widgets = 2) {
 export const SIDEBAR_BUDGET = 36
 
 /**
- * Which slot owns the display, mirroring the host's own rule rather than
- * guessing at it: the sidebar is force-hidden in subagent sessions, and
- * otherwise auto-shows above 120 columns. Each slot renders nothing when the
- * other owns the display, so the widget never appears twice.
+ * Where the widget draws.
  *
- * Known limitation: a plugin cannot observe the manual sidebar toggle. With the
- * sidebar toggled off on a wide terminal the block is rendered into it and is
- * not visible; toggling it back restores it.
+ *   "auto"    — follow the host: the sidebar when the host shows one, the
+ *               prompt row otherwise. The default.
+ *   "prompt"  — always the prompt row, even on a wide terminal.
+ *   "sidebar" — always the sidebar. Taken literally: the host force-hides the
+ *               sidebar in subagent sessions and below 121 columns unless it is
+ *               toggled open, and in those cases this mode shows nothing rather
+ *               than quietly falling back to the row you asked it to leave
+ *               alone.
  */
-export function usesSidebar(width: unknown, session: { parentID?: unknown } | undefined) {
+export const PLACEMENT_MODES = ["auto", "prompt", "sidebar"]
+export const DEFAULT_PLACEMENT = "auto"
+
+export function normalisePlacement(value: unknown, fallback: unknown = DEFAULT_PLACEMENT) {
+  if (PLACEMENT_MODES.includes(value as string)) return value as string
+  return PLACEMENT_MODES.includes(fallback as string) ? (fallback as string) : DEFAULT_PLACEMENT
+}
+
+/**
+ * Which slot owns the display. Under "auto" this mirrors the host's own rule
+ * rather than guessing at it: the sidebar is force-hidden in subagent sessions,
+ * and otherwise auto-shows above 120 columns. Each slot renders nothing when
+ * the other owns the display, so the widget never appears twice.
+ *
+ * Known limitation: a plugin cannot observe the manual sidebar toggle. Under
+ * "auto", with the sidebar toggled off on a wide terminal, the block is
+ * rendered into it and is not visible; toggling it back restores it. Choosing
+ * "prompt" sidesteps that entirely.
+ */
+export function usesSidebar(
+  width: unknown,
+  session: { parentID?: unknown } | undefined,
+  placement: unknown = DEFAULT_PLACEMENT,
+) {
+  const mode = normalisePlacement(placement)
+  if (mode === "prompt") return false
+  if (mode === "sidebar") return true
   const total = Number(width)
   if (!Number.isFinite(total)) return false
   return total > 120 && !session?.parentID
@@ -204,15 +233,25 @@ const plugin: TuiPluginModule = {
   tui: async (api: TuiPluginApi, options) => {
     // Three layers, narrowest scope first: a value set at runtime by the
     // command below wins, else the `tui.json` plugin options, else the default.
-    const configured = normaliseNarrow((options as { narrow?: unknown } | undefined)?.narrow)
-    const stored = () => {
+    const settings = (options ?? {}) as { narrow?: unknown; placement?: unknown }
+    const stored = (key: string) => {
       try {
-        return api.kv.get(NARROW_KEY)
+        return api.kv.get(key)
       } catch {
         return undefined
       }
     }
-    const [narrow, setNarrow] = createSignal(normaliseNarrow(stored(), configured))
+    const remember = (key: string, value: string) => {
+      try {
+        api.kv.set(key, value)
+      } catch {
+        // Not persisting is survivable; not redrawing is not.
+      }
+    }
+    const [narrow, setNarrow] = createSignal(normaliseNarrow(stored(NARROW_KEY), settings.narrow))
+    const [placement, setPlacement] = createSignal(
+      normalisePlacement(stored(PLACEMENT_KEY), settings.placement),
+    )
 
     try {
       api.keymap.registerLayer({
@@ -226,14 +265,26 @@ const plugin: TuiPluginModule = {
             run() {
               const next = narrow() === "always" ? "hide" : "always"
               setNarrow(next)
-              try {
-                api.kv.set(NARROW_KEY, next)
-              } catch {
-                // Not persisting is survivable; not redrawing is not.
-              }
+              remember(NARROW_KEY, next)
               api.ui.toast({
                 message: `SAIA limits on narrow terminals: ${next === "always" ? "always show" : "hide"}`,
               })
+            },
+          },
+          {
+            name: "saia_limits_placement",
+            title: "SAIA limits: cycle where it draws",
+            category: "Plugin",
+            namespace: "palette",
+            slashName: "saia-limits-placement",
+            run() {
+              // Three modes, so a cycle rather than a toggle, running from the
+              // least opinionated to the most.
+              const order = ["auto", "prompt", "sidebar"]
+              const next = order[(order.indexOf(placement()) + 1) % order.length]
+              setPlacement(next)
+              remember(PLACEMENT_KEY, next)
+              api.ui.toast({ message: `SAIA limits draw: ${next}` })
             },
           },
         ],
@@ -270,7 +321,7 @@ const plugin: TuiPluginModule = {
       const width = useWidth()
       const text = () => {
         try {
-          if (usesSidebar(width(), api.state.session.get(props.session_id))) return ""
+          if (usesSidebar(width(), api.state.session.get(props.session_id), placement())) return ""
           return renderLimits(active(props.session_id), { width: width(), narrow: narrow() })
         } catch {
           // A widget must never take the prompt row down with it.
@@ -291,7 +342,7 @@ const plugin: TuiPluginModule = {
       const width = useWidth()
       const lines = () => {
         try {
-          if (!usesSidebar(width(), api.state.session.get(props.session_id))) return []
+          if (!usesSidebar(width(), api.state.session.get(props.session_id), placement())) return []
           return sidebarLines(active(props.session_id))
         } catch {
           return []
@@ -345,5 +396,6 @@ if (typeof module !== "undefined") {
   module.exports.renderLimits = renderLimits
   module.exports.sidebarLines = sidebarLines
   module.exports.tiers = tiers
+  module.exports.normalisePlacement = normalisePlacement
   module.exports.usesSidebar = usesSidebar
 }

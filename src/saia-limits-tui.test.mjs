@@ -3,11 +3,13 @@ import test from "node:test"
 
 import {
   DEFAULT_NARROW,
+  DEFAULT_PLACEMENT,
   displayLimits,
   displayWidth,
   isActiveProvider,
   limitFields,
   normaliseNarrow,
+  normalisePlacement,
   renderLimits,
   selectTier,
   sidebarLines,
@@ -121,6 +123,32 @@ test("measures the single-width glyphs this widget emits", () => {
 
 /* -- Placement -------------------------------------------------------------- */
 
+test("honours a forced placement in either direction", () => {
+  // "prompt": never the sidebar, however wide the terminal.
+  assert.equal(usesSidebar(200, {}, "prompt"), false)
+  assert.equal(usesSidebar(40, {}, "prompt"), false)
+
+  // "sidebar": always the sidebar, taken literally. The host force-hides it in
+  // a subagent session and below 121 columns, and this mode shows nothing there
+  // rather than falling back to the row it was told to leave alone.
+  assert.equal(usesSidebar(40, {}, "sidebar"), true)
+  assert.equal(usesSidebar(200, { parentID: "ses_parent" }, "sidebar"), true)
+
+  // Anything unrecognised is "auto", not a third behaviour.
+  assert.equal(usesSidebar(200, {}, "nonsense"), true)
+  assert.equal(usesSidebar(40, {}, "nonsense"), false)
+})
+
+test("normalises a placement, falling back rather than trusting input", () => {
+  assert.equal(DEFAULT_PLACEMENT, "auto")
+  for (const mode of ["auto", "prompt", "sidebar"]) assert.equal(normalisePlacement(mode), mode)
+  assert.equal(normalisePlacement(undefined), "auto")
+  assert.equal(normalisePlacement("floating"), "auto")
+  // A bad value from tui.json falls through to the layer beneath it.
+  assert.equal(normalisePlacement(undefined, "prompt"), "prompt")
+  assert.equal(normalisePlacement("floating", "sidebar"), "sidebar")
+})
+
 test("gives the sidebar the display exactly when the host would show it", () => {
   // The host's rule: a 42-column sidebar, auto above 120 columns, force-hidden
   // in a subagent session.
@@ -194,6 +222,48 @@ test("survives a host without the optional apis it uses", async () => {
   bare.slots = { register: (value) => (registered = value) }
   await plugin.tui(bare)
   assert.equal(typeof registered.slots.sidebar_content, "function")
+})
+
+test("registers a command that cycles where the widget draws", async () => {
+  const writes = []
+  let layer
+  await plugin.tui(stubApi({
+    kv: { get: () => undefined, set: (key, value) => writes.push([key, value]) },
+    keymap: { registerLayer: (value) => (layer = value) },
+  }))
+
+  const command = layer.commands.find((item) => item.slashName === "saia-limits-placement")
+  assert.ok(command, "the placement cycle must be reachable from the palette")
+
+  // Least opinionated first, and back round again.
+  command.run()
+  command.run()
+  command.run()
+  assert.deepEqual(writes, [
+    ["saia-limits.placement", "prompt"],
+    ["saia-limits.placement", "sidebar"],
+    ["saia-limits.placement", "auto"],
+  ])
+})
+
+test("takes its starting placement from tui.json options, and kv over that", async () => {
+  let fromOptions
+  await plugin.tui(stubApi({ slots: { register: (value) => (fromOptions = value) } }), { placement: "prompt" })
+  assert.equal(typeof fromOptions.slots.sidebar_content, "function", "both slots register whatever the mode")
+
+  const writes = []
+  let cycle
+  await plugin.tui(
+    stubApi({
+      kv: { get: (key) => (key === "saia-limits.placement" ? "sidebar" : undefined), set: (k, v) => writes.push([k, v]) },
+      keymap: { registerLayer: (value) => (cycle = value.commands.find((c) => c.slashName === "saia-limits-placement")) },
+    }),
+    { placement: "prompt" },
+  )
+  // kv said "sidebar", so the next step in the cycle is "auto" — the stored
+  // value wins over the configured one.
+  cycle.run()
+  assert.deepEqual(writes, [["saia-limits.placement", "auto"]])
 })
 
 test("registers a command for the narrow-terminal toggle", async () => {
