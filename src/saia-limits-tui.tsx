@@ -12,6 +12,36 @@ function formatRemaining(value: unknown) {
   return `${thousands.toFixed(1).replace(/\.0$/, "")}k`
 }
 
+/** The provider id this widget speaks for. */
+const PROVIDER_ID = "saia"
+
+type MaybeAssistantMessage = {
+  role?: string
+  providerID?: string
+  time?: { completed?: number }
+}
+
+/**
+ * Whether SAIA is the provider that actually answered last, read from the
+ * newest *completed* assistant message.
+ *
+ * A session that has moved to another provider must not keep showing SAIA's
+ * rate limits. `metadata.saiaLimits` is left untouched, so switching back
+ * restores the display without a new request. An in-flight turn has not
+ * answered yet, so it does not hand over.
+ */
+export function isActiveProvider(messages: unknown, providerID: string = PROVIDER_ID) {
+  const list = Array.isArray(messages) ? messages : []
+  for (let index = list.length - 1; index >= 0; index -= 1) {
+    const message = list[index] as MaybeAssistantMessage | undefined
+    if (message?.role !== "assistant") continue
+    const completed = message.time?.completed
+    if (typeof completed !== "number" || !Number.isFinite(completed)) continue
+    return message.providerID === providerID
+  }
+  return false
+}
+
 export function displayLimits(value: unknown) {
   if (!value || typeof value !== "object") return ""
 
@@ -31,7 +61,10 @@ const plugin: TuiPluginModule = {
   id: "saia-limits-tui",
   tui: async (api: TuiPluginApi) => {
     function SaiaLimits(props: SaiaLimitsProps) {
-      const text = () => displayLimits(api.state.session.get(props.session_id)?.metadata?.saiaLimits)
+      const text = () => {
+        if (!isActiveProvider(api.state.session.messages(props.session_id))) return ""
+        return displayLimits(api.state.session.get(props.session_id)?.metadata?.saiaLimits)
+      }
 
       return (
         <box height={1} minWidth={0} flexShrink={1} overflow="hidden">
@@ -60,4 +93,5 @@ export default plugin
 if (typeof module !== "undefined") {
   module.exports = plugin
   module.exports.displayLimits = displayLimits
+  module.exports.isActiveProvider = isActiveProvider
 }
