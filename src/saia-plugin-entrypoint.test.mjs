@@ -27,15 +27,17 @@ test("formats quota labels and registers the TUI prompt slot", async () => {
   assert.equal(displayLimits(limits), "26/m · 128/h · 530/d · 2.5k/mo")
   assert.equal(displayLimits({}), "")
 
-  let registered
+  const registered = []
   await tuiPlugin.tui({
     slots: {
       register(plugin) {
-        registered = plugin
+        registered.push(plugin)
       },
     },
   })
 
-  assert.equal(registered.order, 100)
-  assert.equal(typeof registered.slots.session_prompt_right, "function")
+  assert.equal(registered[0].order, 100)
+  assert.equal(typeof registered[0].slots.session_prompt_right, "function")
+  assert.equal(registered[1].order, 140)
+  assert.equal(typeof registered[1].slots.sidebar_content, "function")
 })

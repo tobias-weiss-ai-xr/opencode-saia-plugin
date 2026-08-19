@@ -64,6 +64,18 @@ function limitsFrom(response) {
   }
 }
 
+function subagentNameOf(session) {
+  if (!session?.parentID) return undefined
+  if (typeof session.agent === "string" && session.agent.trim()) {
+    return session.agent.trim()
+  }
+  if (typeof session.title === "string") {
+    const match = session.title.match(/@([\w-]+)\s+subagent/i)
+    if (match) return match[1]
+  }
+  return "subagent"
+}
+
 async function saveLimits(client, sessionID, limits) {
   const transport = client?._client
   if (!transport || typeof transport.get !== "function" || typeof transport.patch !== "function") {
@@ -84,6 +96,10 @@ async function saveLimits(client, sessionID, limits) {
       ? current.metadata
       : {}
 
+  const isSubagent = Boolean(current?.parentID)
+  const subagentName = subagentNameOf(current)
+  const subagent = isSubagent ? subagentName || true : false
+
   await transport.patch({
     url: "/session/{sessionID}",
     path: { sessionID },
@@ -91,10 +107,68 @@ async function saveLimits(client, sessionID, limits) {
     body: {
       metadata: {
         ...metadata,
-        saiaLimits: limits,
+        saiaLimits: {
+          ...limits,
+          subagent,
+        },
       },
     },
   })
+
+  if (isSubagent && current?.parentID) {
+    try {
+      const parent = unwrap(
+        await transport.get({
+          url: "/session/{sessionID}",
+          path: { sessionID: current.parentID },
+        }),
+      )
+      const parentMetadata =
+        parent?.metadata && typeof parent.metadata === "object" && !Array.isArray(parent.metadata)
+          ? parent.metadata
+          : {}
+
+      const prevSubagents =
+        parentMetadata.saiaSubagents && typeof parentMetadata.saiaSubagents === "object"
+          ? parentMetadata.saiaSubagents
+          : {}
+
+      const subagentModel = current?.model?.modelID || ""
+      const updatedSubagents = {
+        ...prevSubagents,
+        [sessionID]: {
+          id: sessionID,
+          name: subagentName || "subagent",
+          model: subagentModel,
+          updated: Date.now(),
+        },
+      }
+
+      await transport.patch({
+        url: "/session/{sessionID}",
+        path: { sessionID: current.parentID },
+        headers: { "Content-Type": "application/json" },
+        body: {
+          metadata: {
+            ...parentMetadata,
+            saiaSubagents: updatedSubagents,
+            saiaSubagentLimits: {
+              ...limits,
+              subagent: subagentName || true,
+              model: subagentModel,
+            },
+            saiaLimits: {
+              ...limits,
+              subagent: subagentName || true,
+              model: subagentModel,
+            },
+          },
+        },
+      })
+    } catch {
+      // Failure to update parent metadata is non-fatal.
+    }
+  }
 }
 
 export function createSaiaLimitsHooks(client, { onWarning = console.warn } = {}) {

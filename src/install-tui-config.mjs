@@ -9,7 +9,7 @@ export const TUI_PLUGIN_PATH = "./plugins/saia-limits-tui.tsx"
 /** Options the widget understands, and the values each one accepts. */
 export const TUI_PLUGIN_OPTIONS = {
   narrow: ["always", "hide"],
-  placement: ["auto", "prompt", "sidebar"],
+  placement: ["auto", "prompt", "sidebar", "both"],
   layout: ["line", "stack"],
 }
 

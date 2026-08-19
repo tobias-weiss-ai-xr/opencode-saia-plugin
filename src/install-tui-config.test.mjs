@@ -95,6 +95,9 @@ test("refuses an option or a value it does not know", () => {
     narrow: "hide",
     placement: "auto",
   })
+  assert.deepEqual(validateTuiPluginOptions({ placement: "both" }), {
+    placement: "both",
+  })
 })
 
 test("parses the CLI forms of both flags alongside a config dir", () => {

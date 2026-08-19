@@ -8,6 +8,7 @@ import {
   displayLimits,
   displayWidth,
   isActiveProvider,
+  isSessionUsingSaia,
   limitFields,
   normaliseNarrow,
   normaliseLayout,
@@ -15,9 +16,11 @@ import {
   packRows,
   promptLines,
   renderLimits,
+  resolveSessionLimits,
   selectTier,
   sidebarLines,
   tiers,
+  usesPrompt,
   usesSidebar,
   widgetBudget,
 } from "./saia-limits-tui.tsx"
@@ -57,9 +60,58 @@ test("says no rather than guessing when there is nothing to read", () => {
   assert.equal(isActiveProvider([{ role: "assistant", time: { completed: 1 } }]), false, "an unlabelled turn is not SAIA's")
 })
 
+test("checks session model when there are no completed assistant messages yet", () => {
+  assert.equal(isActiveProvider([], "saia", { model: { providerID: "saia" } }), true)
+  assert.equal(isActiveProvider([], "saia", { model: { providerID: "anthropic" } }), false)
+  // If a completed message exists, it takes precedence over initial model
+  assert.equal(isActiveProvider([other], "saia", { model: { providerID: "saia" } }), false)
+  assert.equal(isActiveProvider([saia], "saia", { model: { providerID: "anthropic" } }), true)
+})
+
 test("takes the provider id as an argument, so the rule is reusable", () => {
   assert.equal(isActiveProvider([saia, other], "kiconnect"), true)
   assert.equal(isActiveProvider([other, saia], "kiconnect"), false)
+})
+
+test("resolves session limits walking up parent sessions if needed", () => {
+  const sessions = new Map([
+    ["root", { id: "root", metadata: { saiaLimits: LIMITS } }],
+    ["sub_with_limits", { id: "sub_with_limits", parentID: "root", metadata: { saiaLimits: { minute: 5 } } }],
+    ["sub_empty", { id: "sub_empty", parentID: "root", metadata: {} }],
+    ["nested_sub", { id: "nested_sub", parentID: "sub_empty" }],
+  ])
+  const getSession = (id) => sessions.get(id)
+
+  assert.deepEqual(resolveSessionLimits("root", getSession), LIMITS)
+  assert.deepEqual(resolveSessionLimits("sub_with_limits", getSession), { minute: 5 })
+  assert.deepEqual(resolveSessionLimits("sub_empty", getSession), LIMITS)
+  assert.deepEqual(resolveSessionLimits("nested_sub", getSession), LIMITS)
+  assert.equal(resolveSessionLimits("unknown", getSession), undefined)
+})
+
+test("identifies when subagent or parent sessions run SAIA", () => {
+  const sessions = new Map([
+    ["parent_saia", { id: "parent_saia", model: { providerID: "saia" } }],
+    ["parent_other", { id: "parent_other", model: { providerID: "anthropic" } }],
+    ["sub_saia", { id: "sub_saia", parentID: "parent_other", model: { providerID: "saia" } }],
+    ["sub_other", { id: "sub_other", parentID: "parent_saia", model: { providerID: "anthropic" } }],
+    ["sub_inherit", { id: "sub_inherit", parentID: "parent_saia" }],
+  ])
+  const messages = new Map([
+    ["parent_saia", [saia]],
+    ["parent_other", [other]],
+    ["sub_saia", []],
+    ["sub_other", []],
+    ["sub_inherit", []],
+  ])
+  const getSession = (id) => sessions.get(id)
+  const getMessages = (id) => messages.get(id) ?? []
+
+  assert.equal(isSessionUsingSaia("parent_saia", getSession, getMessages), true)
+  assert.equal(isSessionUsingSaia("parent_other", getSession, getMessages), false)
+  assert.equal(isSessionUsingSaia("sub_saia", getSession, getMessages), true, "subagent running SAIA shows limits")
+  assert.equal(isSessionUsingSaia("sub_other", getSession, getMessages), false, "subagent running non-SAIA does not show SAIA limits")
+  assert.equal(isSessionUsingSaia("sub_inherit", getSession, getMessages), true, "subagent inheriting from SAIA parent shows limits")
 })
 
 /* -- Narrow prompt rows ----------------------------------------------------- */
@@ -144,30 +196,41 @@ test("measures the single-width glyphs this widget emits", () => {
 
 /* -- Placement -------------------------------------------------------------- */
 
-test("honours a forced placement in either direction", () => {
-  // "prompt": never the sidebar, however wide the terminal.
+test("honours a forced placement in either direction or both", () => {
+  // "prompt": never the sidebar, always the prompt
   assert.equal(usesSidebar(200, {}, "prompt"), false)
   assert.equal(usesSidebar(40, {}, "prompt"), false)
+  assert.equal(usesPrompt(200, {}, "prompt"), true)
+  assert.equal(usesPrompt(40, {}, "prompt"), true)
 
-  // "sidebar": always the sidebar, taken literally. The host force-hides it in
-  // a subagent session and below 121 columns, and this mode shows nothing there
-  // rather than falling back to the row it was told to leave alone.
+  // "sidebar": always the sidebar, never the prompt
   assert.equal(usesSidebar(40, {}, "sidebar"), true)
   assert.equal(usesSidebar(200, { parentID: "ses_parent" }, "sidebar"), true)
+  assert.equal(usesPrompt(200, {}, "sidebar"), false)
+  assert.equal(usesPrompt(40, {}, "sidebar"), false)
 
-  // Anything unrecognised is "auto", not a third behaviour.
+  // "both": draws in both sidebar and prompt
+  assert.equal(usesSidebar(200, {}, "both"), true)
+  assert.equal(usesSidebar(40, {}, "both"), true)
+  assert.equal(usesPrompt(200, {}, "both"), true)
+  assert.equal(usesPrompt(40, {}, "both"), true)
+
+  // Anything unrecognised is "auto", not another behaviour
   assert.equal(usesSidebar(200, {}, "nonsense"), true)
   assert.equal(usesSidebar(40, {}, "nonsense"), false)
+  assert.equal(usesPrompt(200, {}, "nonsense"), false)
+  assert.equal(usesPrompt(40, {}, "nonsense"), true)
 })
 
 test("normalises a placement, falling back rather than trusting input", () => {
   assert.equal(DEFAULT_PLACEMENT, "auto")
-  for (const mode of ["auto", "prompt", "sidebar"]) assert.equal(normalisePlacement(mode), mode)
+  for (const mode of ["auto", "prompt", "sidebar", "both"]) assert.equal(normalisePlacement(mode), mode)
   assert.equal(normalisePlacement(undefined), "auto")
   assert.equal(normalisePlacement("floating"), "auto")
   // A bad value from tui.json falls through to the layer beneath it.
   assert.equal(normalisePlacement(undefined, "prompt"), "prompt")
   assert.equal(normalisePlacement("floating", "sidebar"), "sidebar")
+  assert.equal(normalisePlacement(undefined, "both"), "both")
 })
 
 test("gives the sidebar the display exactly when the host would show it", () => {
@@ -179,6 +242,11 @@ test("gives the sidebar the display exactly when the host would show it", () => 
   assert.equal(usesSidebar(200, undefined), true)
   assert.equal(usesSidebar(undefined, {}), false)
   assert.equal(usesSidebar("nonsense", {}), false)
+
+  // In auto mode, prompt is the inverse of sidebar
+  assert.equal(usesPrompt(121, {}), false)
+  assert.equal(usesPrompt(120, {}), true)
+  assert.equal(usesPrompt(200, { parentID: "ses_parent" }), true, "subagent session uses prompt")
 })
 
 test("the sidebar renderer returns lines and the prompt renderer one string", () => {
@@ -191,6 +259,10 @@ test("the sidebar renderer returns lines and the prompt renderer one string", ()
 
   assert.deepEqual(sidebarLines({}), [])
   assert.deepEqual(sidebarLines(null), [])
+
+  // Subagent indicators
+  assert.deepEqual(sidebarLines({ ...LIMITS, subagent: true }), ["SAIA (subagent)", "9/m · 199/h · 128/d · 2.7k/mo"])
+  assert.deepEqual(sidebarLines({ ...LIMITS, subagent: "Scout" }), ["SAIA (Scout)", "9/m · 199/h · 128/d · 2.7k/mo"])
 })
 
 test("wraps the sidebar block onto more rows rather than truncating a window", () => {
@@ -227,22 +299,24 @@ function stubApi(overrides = {}) {
 }
 
 test("registers both slots, so the block moves rather than appearing twice", async () => {
-  let registered
-  await plugin.tui(stubApi({ slots: { register: (value) => (registered = value) } }))
+  const registered = []
+  await plugin.tui(stubApi({ slots: { register: (value) => registered.push(value) } }))
 
-  assert.equal(registered.order, 100, "first in the strip and first in the sidebar stack")
-  assert.equal(typeof registered.slots.session_prompt_right, "function")
-  assert.equal(typeof registered.slots.sidebar_content, "function")
+  assert.equal(registered[0].order, 100, "first in the strip and first in the sidebar stack")
+  assert.equal(typeof registered[0].slots.session_prompt_right, "function")
+  assert.equal(typeof registered[0].slots.sidebar_content, "function")
+  assert.equal(registered[1].order, 140, "subagents section placed after main model quotas")
+  assert.equal(typeof registered[1].slots.sidebar_content, "function")
 })
 
 test("survives a host without the optional apis it uses", async () => {
   // kv, keymap and ui are all conveniences: losing the toggle is survivable,
   // losing the widget is not.
   const bare = stubApi({ kv: undefined, keymap: undefined, ui: undefined })
-  let registered
-  bare.slots = { register: (value) => (registered = value) }
+  const registered = []
+  bare.slots = { register: (value) => registered.push(value) }
   await plugin.tui(bare)
-  assert.equal(typeof registered.slots.sidebar_content, "function")
+  assert.equal(typeof registered[0].slots.sidebar_content, "function")
 })
 
 test("registers a command that cycles where the widget draws", async () => {
@@ -260,9 +334,11 @@ test("registers a command that cycles where the widget draws", async () => {
   command.run()
   command.run()
   command.run()
+  command.run()
   assert.deepEqual(writes, [
     ["saia-limits.placement", "prompt"],
     ["saia-limits.placement", "sidebar"],
+    ["saia-limits.placement", "both"],
     ["saia-limits.placement", "auto"],
   ])
 })
@@ -281,10 +357,10 @@ test("takes its starting placement from tui.json options, and kv over that", asy
     }),
     { placement: "prompt" },
   )
-  // kv said "sidebar", so the next step in the cycle is "auto" — the stored
+  // kv said "sidebar", so the next step in the cycle is "both" — the stored
   // value wins over the configured one.
   cycle.run()
-  assert.deepEqual(writes, [["saia-limits.placement", "auto"]])
+  assert.deepEqual(writes, [["saia-limits.placement", "both"]])
 })
 
 test("registers a command for the narrow-terminal toggle", async () => {

@@ -24,22 +24,44 @@ const NARROW_KEY = "saia-limits.narrow"
 const PLACEMENT_KEY = "saia-limits.placement"
 const LAYOUT_KEY = "saia-limits.layout"
 
-type MaybeAssistantMessage = {
+export type MaybeAssistantMessage = {
   role?: string
   providerID?: string
   time?: { completed?: number }
 }
 
+export type MaybeSession = {
+  id?: string
+  parentID?: string
+  model?: { providerID?: string }
+  metadata?: { saiaLimits?: unknown; [key: string]: unknown }
+  time?: { created?: number; updated?: number; archived?: number; compacting?: number }
+}
+
 /**
  * Whether SAIA is the provider that actually answered last, read from the
- * newest *completed* assistant message.
+ * newest *completed* assistant message, or from the session model / parent
+ * if no assistant message has completed yet.
  *
  * A session that has moved to another provider must not keep showing SAIA's
  * rate limits. `metadata.saiaLimits` is left untouched, so switching back
  * restores the display without a new request. An in-flight turn has not
  * answered yet, so it does not hand over.
  */
-export function isActiveProvider(messages: unknown, providerID: string = PROVIDER_ID) {
+export function isActiveProvider(
+  messages: unknown,
+  providerID: string = PROVIDER_ID,
+  session?: MaybeSession,
+) {
+  // If a subagent using this provider recently updated limits on the session
+  if (
+    session?.metadata?.saiaLimits &&
+    typeof session.metadata.saiaLimits === "object" &&
+    Boolean((session.metadata.saiaLimits as { subagent?: unknown }).subagent)
+  ) {
+    return true
+  }
+
   const list = Array.isArray(messages) ? messages : []
   for (let index = list.length - 1; index >= 0; index -= 1) {
     const message = list[index] as MaybeAssistantMessage | undefined
@@ -48,6 +70,12 @@ export function isActiveProvider(messages: unknown, providerID: string = PROVIDE
     if (typeof completed !== "number" || !Number.isFinite(completed)) continue
     return message.providerID === providerID
   }
+
+  // If no completed assistant message is present in the list yet, check session model
+  if (session?.model?.providerID) {
+    return session.model.providerID === providerID
+  }
+
   return false
 }
 
@@ -106,7 +134,14 @@ export function tiers(value: unknown) {
   const fields = limitFields(value)
   if (fields.length === 0) return [] as string[]
 
-  const candidates = [fields.join(" · ")]
+  const subagent = (value as { subagent?: unknown })?.subagent
+  const tag = subagent
+    ? typeof subagent === "string" && subagent !== "true"
+      ? `(subagent: ${subagent})`
+      : "(subagent)"
+    : undefined
+
+  const candidates = [tag ? `${fields.join(" · ")} · ${tag}` : fields.join(" · ")]
   let remaining = fields
   for (const unit of SACRIFICE_ORDER) {
     if (remaining.length <= 1) break
@@ -241,8 +276,9 @@ export const SIDEBAR_BUDGET = 36
  *               toggled open, and in those cases this mode shows nothing rather
  *               than quietly falling back to the row you asked it to leave
  *               alone.
+ *   "both"    — draw in both the sidebar and the prompt row under the chatbox.
  */
-export const PLACEMENT_MODES = ["auto", "prompt", "sidebar"]
+export const PLACEMENT_MODES = ["auto", "prompt", "sidebar", "both"]
 export const DEFAULT_PLACEMENT = "auto"
 
 export function normalisePlacement(value: unknown, fallback: unknown = DEFAULT_PLACEMENT) {
@@ -256,10 +292,12 @@ export function normalisePlacement(value: unknown, fallback: unknown = DEFAULT_P
  * and otherwise auto-shows above 120 columns. Each slot renders nothing when
  * the other owns the display, so the widget never appears twice.
  *
+ * Under "both", the widget draws in both the sidebar and prompt row simultaneously.
+ *
  * Known limitation: a plugin cannot observe the manual sidebar toggle. Under
  * "auto", with the sidebar toggled off on a wide terminal, the block is
  * rendered into it and is not visible; toggling it back restores it. Choosing
- * "prompt" sidesteps that entirely.
+ * "prompt" or "both" sidesteps that entirely.
  */
 export function usesSidebar(
   width: unknown,
@@ -268,10 +306,189 @@ export function usesSidebar(
 ) {
   const mode = normalisePlacement(placement)
   if (mode === "prompt") return false
-  if (mode === "sidebar") return true
+  if (mode === "sidebar" || mode === "both") return true
   const total = Number(width)
   if (!Number.isFinite(total)) return false
   return total > 120 && !session?.parentID
+}
+
+export function usesPrompt(
+  width: unknown,
+  session: { parentID?: unknown } | undefined,
+  placement: unknown = DEFAULT_PLACEMENT,
+) {
+  const mode = normalisePlacement(placement)
+  if (mode === "sidebar") return false
+  if (mode === "prompt" || mode === "both") return true
+  const total = Number(width)
+  if (!Number.isFinite(total)) return true
+  return !(total > 120 && !session?.parentID)
+}
+
+export function resolveSessionLimits(
+  sessionId: string,
+  getSession: (id: string) => MaybeSession | undefined,
+) {
+  let currentId: string | undefined = sessionId
+  const seen = new Set<string>()
+  while (currentId && !seen.has(currentId)) {
+    seen.add(currentId)
+    const session = getSession(currentId)
+    if (session?.metadata?.saiaLimits) {
+      return session.metadata.saiaLimits
+    }
+    currentId = session?.parentID
+  }
+  return undefined
+}
+
+export function isSessionUsingSaia(
+  sessionId: string,
+  getSession: (id: string) => MaybeSession | undefined,
+  getMessages: (id: string) => unknown,
+  providerID: string = PROVIDER_ID,
+) {
+  const rootSession = getSession(sessionId)
+  if (
+    rootSession?.metadata?.saiaLimits &&
+    typeof rootSession.metadata.saiaLimits === "object" &&
+    Boolean((rootSession.metadata.saiaLimits as { subagent?: unknown }).subagent)
+  ) {
+    return true
+  }
+
+  let currentId: string | undefined = sessionId
+  const seen = new Set<string>()
+  while (currentId && !seen.has(currentId)) {
+    seen.add(currentId)
+    const session = getSession(currentId)
+    const messages = getMessages(currentId)
+    const list = Array.isArray(messages) ? messages : []
+
+    const hasCompletedAssistant = list.some((m) => {
+      const msg = m as MaybeAssistantMessage | undefined
+      return (
+        msg?.role === "assistant" &&
+        typeof msg.time?.completed === "number" &&
+        Number.isFinite(msg.time.completed)
+      )
+    })
+
+    if (hasCompletedAssistant) {
+      return isActiveProvider(list, providerID, session)
+    }
+
+    if (session?.model?.providerID) {
+      return session.model.providerID === providerID
+    }
+
+    currentId = session?.parentID
+  }
+
+  return false
+}
+
+export function isMainSessionUsingSaia(
+  sessionId: string,
+  getSession: (id: string) => MaybeSession | undefined,
+  getMessages: (id: string) => unknown,
+  providerID: string = PROVIDER_ID,
+) {
+  const session = getSession(sessionId)
+  if (session?.parentID) {
+    return isSessionUsingSaia(sessionId, getSession, getMessages, providerID)
+  }
+
+  const messages = getMessages(sessionId)
+  const list = Array.isArray(messages) ? messages : []
+  for (let index = list.length - 1; index >= 0; index -= 1) {
+    const message = list[index] as MaybeAssistantMessage | undefined
+    if (message?.role !== "assistant") continue
+    const completed = message.time?.completed
+    if (typeof completed !== "number" || !Number.isFinite(completed)) continue
+    return message.providerID === providerID
+  }
+
+  if (session?.model?.providerID) {
+    return session.model.providerID === providerID
+  }
+
+  return false
+}
+
+export function resolveSubagentLimits(
+  sessionId: string,
+  getSession: (id: string) => MaybeSession | undefined,
+) {
+  const session = getSession(sessionId)
+  if (!session) return undefined
+  const sub = session.metadata?.saiaSubagentLimits
+  if (sub && typeof sub === "object" && (sub as { subagent?: unknown }).subagent) {
+    return sub
+  }
+  const limits = session.metadata?.saiaLimits
+  if (limits && typeof limits === "object" && (limits as { subagent?: unknown }).subagent) {
+    return limits
+  }
+  return undefined
+}
+
+export function getActiveSubagents(
+  subagentsMap: unknown,
+  getStatus: (id: string) => { type?: string } | undefined,
+  getSession: (id: string) => MaybeSession | undefined,
+): Array<{ id: string; name: string; model?: string }> {
+  if (!subagentsMap || typeof subagentsMap !== "object") return []
+  const list = Object.values(
+    subagentsMap as Record<string, { id?: string; name?: string; model?: string; updated?: number }>,
+  )
+  const active: Array<{ id: string; name: string; model?: string; updated?: number }> = []
+
+  for (const item of list) {
+    if (!item || typeof item !== "object" || !item.id) continue
+    const status = getStatus(item.id)
+    const session = getSession(item.id)
+
+    if (
+      status?.type === "idle" ||
+      (typeof session?.time?.archived === "number" && Number.isFinite(session.time.archived))
+    ) {
+      continue
+    }
+
+    if (status?.type === "busy" || status?.type === "retry") {
+      active.push({ id: item.id, name: item.name || "subagent", model: item.model, updated: item.updated })
+      continue
+    }
+
+    if (item.updated && Date.now() - item.updated < 60_000) {
+      active.push({ id: item.id, name: item.name || "subagent", model: item.model, updated: item.updated })
+    }
+  }
+
+  active.sort((a, b) => (b.updated ?? 0) - (a.updated ?? 0))
+  return active
+}
+
+export function formatSubagentLines(
+  subagents: Array<{ name: string; model?: string }>,
+  max = 5,
+): string[] {
+  if (subagents.length === 0) return []
+  const formatItem = (s: { name: string; model?: string }) => {
+    const shortModel = s.model ? s.model.replace(/-mitarbeitende$/i, "").replace(/-Mitarbeitende$/, "") : ""
+    return shortModel ? `${s.name} · ${shortModel}` : s.name
+  }
+
+  if (subagents.length <= max) {
+    return subagents.map(formatItem)
+  }
+
+  const shown = subagents.slice(0, max - 1)
+  const remaining = subagents.length - shown.length
+  const lines = shown.map(formatItem)
+  lines.push(`and ${remaining} more`)
+  return lines
 }
 
 export function resolveWidth(measuredWidth: unknown, columns: unknown, fallback = 120) {
@@ -293,7 +510,13 @@ export function renderLimits(
 export function sidebarLines(value: unknown, budget = SIDEBAR_BUDGET) {
   const fields = limitFields(value)
   if (fields.length === 0) return [] as string[]
-  return ["SAIA", ...packRows(fields, budget)]
+  const subagent = (value as { subagent?: unknown })?.subagent
+  const header = subagent
+    ? typeof subagent === "string" && subagent !== "true"
+      ? `SAIA (${subagent})`
+      : "SAIA (subagent)"
+    : "SAIA"
+  return [header, ...packRows(fields, budget)]
 }
 
 const plugin: TuiPluginModule = {
@@ -342,18 +565,17 @@ const plugin: TuiPluginModule = {
           },
           {
             name: "saia_limits_placement",
-            title: "SAIA limits: cycle where it draws",
+            title: "SAIA limits: cycle widget placement",
             category: "Plugin",
             namespace: "palette",
             slashName: "saia-limits-placement",
             run() {
-              // Three modes, so a cycle rather than a toggle, running from the
-              // least opinionated to the most.
-              const order = ["auto", "prompt", "sidebar"]
-              const next = order[(order.indexOf(placement()) + 1) % order.length]
+              const current = placement()
+              const index = PLACEMENT_MODES.indexOf(current)
+              const next = PLACEMENT_MODES[(index + 1) % PLACEMENT_MODES.length]
               setPlacement(next)
               remember(PLACEMENT_KEY, next)
-              api.ui.toast({ message: `SAIA limits draw: ${next}` })
+              api.ui.toast({ message: `SAIA limits placement: ${next}` })
             },
           },
           {
@@ -397,16 +619,35 @@ const plugin: TuiPluginModule = {
 
     /** The limits to draw, or undefined when this widget must stay silent. */
     const active = (session_id: string) => {
-      if (!isActiveProvider(api.state.session.messages(session_id))) return undefined
-      return api.state.session.get(session_id)?.metadata?.saiaLimits
+      if (
+        !isSessionUsingSaia(
+          session_id,
+          (id) => api.state.session.get(id),
+          (id) => api.state.session.messages(id),
+        )
+      ) {
+        return undefined
+      }
+      return resolveSessionLimits(session_id, (id) => api.state.session.get(id))
     }
 
     function SaiaLimitsPrompt(props: SaiaLimitsProps) {
       const width = useWidth()
       const rows = () => {
         try {
-          if (usesSidebar(width(), api.state.session.get(props.session_id), placement())) return []
-          return promptLines(active(props.session_id), {
+          if (!usesPrompt(width(), api.state.session.get(props.session_id), placement())) return []
+          if (
+            !isMainSessionUsingSaia(
+              props.session_id,
+              (id) => api.state.session.get(id),
+              (id) => api.state.session.messages(id),
+            )
+          ) {
+            return []
+          }
+          const limits = resolveSessionLimits(props.session_id, (id) => api.state.session.get(id))
+          if (!limits) return []
+          return promptLines(limits, {
             width: width(),
             narrow: narrow(),
             layout: layout(),
@@ -438,7 +679,18 @@ const plugin: TuiPluginModule = {
       const lines = () => {
         try {
           if (!usesSidebar(width(), api.state.session.get(props.session_id), placement())) return []
-          return sidebarLines(active(props.session_id))
+          if (
+            !isMainSessionUsingSaia(
+              props.session_id,
+              (id) => api.state.session.get(id),
+              (id) => api.state.session.messages(id),
+            )
+          ) {
+            return []
+          }
+          const limits = resolveSessionLimits(props.session_id, (id) => api.state.session.get(id))
+          if (!limits || typeof limits !== "object") return []
+          return sidebarLines({ ...(limits as Record<string, unknown>), subagent: false })
         } catch {
           return []
         }
@@ -464,8 +716,82 @@ const plugin: TuiPluginModule = {
       )
     }
 
+    function SaiaSubagentSidebar(props: SaiaLimitsProps) {
+      const width = useWidth()
+      const data = () => {
+        try {
+          if (!usesSidebar(width(), api.state.session.get(props.session_id), placement())) return undefined
+          const limits = resolveSubagentLimits(props.session_id, (id) => api.state.session.get(id))
+          if (!limits) return undefined
+
+          const session = api.state.session.get(props.session_id)
+          let activeList = getActiveSubagents(
+            session?.metadata?.saiaSubagents,
+            (id) => api.state.session.status(id),
+            (id) => api.state.session.get(id),
+          )
+
+          if (activeList.length === 0 && (limits as { subagent?: unknown })?.subagent) {
+            const sub = (limits as { subagent?: unknown; model?: unknown }).subagent
+            const subName = typeof sub === "string" && sub !== "true" ? sub : ""
+            if (subName) {
+              const model =
+                typeof (limits as { model?: unknown }).model === "string"
+                  ? (limits as { model?: string }).model
+                  : ""
+              activeList = [{ id: props.session_id, name: subName, model }]
+            }
+          }
+
+          if (activeList.length === 0) return undefined
+
+          const quotaRows = packRows(limitFields(limits), SIDEBAR_BUDGET)
+          if (quotaRows.length === 0) return undefined
+
+          const subagentRows = formatSubagentLines(activeList, 5)
+
+          return {
+            title: "SAIA",
+            quotaRows,
+            subagentRows,
+          }
+        } catch {
+          return undefined
+        }
+      }
+
+      return (
+        <Show when={data()}>
+          {(d) => (
+            <box flexDirection="column" flexShrink={0}>
+              <text height={1} wrapMode="none" truncate fg={api.theme.current.text}>
+                <b>Subagents</b>
+              </text>
+              <text height={1} wrapMode="none" truncate fg={api.theme.current.text}>
+                <b>{d().title}</b>
+              </text>
+              <For each={d().quotaRows}>
+                {(row) => (
+                  <text height={1} wrapMode="none" truncate fg={api.theme.current.textMuted}>
+                    {row}
+                  </text>
+                )}
+              </For>
+              <For each={d().subagentRows}>
+                {(row) => (
+                  <text height={1} wrapMode="none" truncate fg={api.theme.current.textMuted}>
+                    {row}
+                  </text>
+                )}
+              </For>
+            </box>
+          )}
+        </Show>
+      )
+    }
+
     api.slots.register({
-      // First in the strip, and first in the sidebar stack for the same reason.
+      // First in the strip, and first in the sidebar stack for main chat model.
       order: 100,
       slots: {
         session_prompt_right(_context, props) {
@@ -473,6 +799,16 @@ const plugin: TuiPluginModule = {
         },
         sidebar_content(_context, props) {
           return <SaiaLimitsSidebar session_id={props.session_id} />
+        },
+      },
+    })
+
+    api.slots.register({
+      // Subagents section, placed after main model quotas and cache-hit.
+      order: 140,
+      slots: {
+        sidebar_content(_context, props) {
+          return <SaiaSubagentSidebar session_id={props.session_id} />
         },
       },
     })
@@ -495,4 +831,11 @@ if (typeof module !== "undefined") {
   module.exports.tiers = tiers
   module.exports.normalisePlacement = normalisePlacement
   module.exports.usesSidebar = usesSidebar
+  module.exports.usesPrompt = usesPrompt
+  module.exports.resolveSessionLimits = resolveSessionLimits
+  module.exports.isSessionUsingSaia = isSessionUsingSaia
+  module.exports.isMainSessionUsingSaia = isMainSessionUsingSaia
+  module.exports.resolveSubagentLimits = resolveSubagentLimits
+  module.exports.getActiveSubagents = getActiveSubagents
+  module.exports.formatSubagentLines = formatSubagentLines
 }

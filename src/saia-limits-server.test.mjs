@@ -105,6 +105,34 @@ test("records rate limits and strips the internal header before the request leav
   assert.match(metadata.saiaLimits.updatedAt, /^\d{4}-\d{2}-\d{2}T/)
 })
 
+test("persists rate limits to both subagent and parent session", async () => {
+  const { calls, config, client, hooks } = setup()
+  client._client.get = async (input) => {
+    calls.gets.push(input)
+    if (input.path.sessionID === "ses_subagent") {
+      return { data: { parentID: "ses_parent_main", metadata: { sub: true } } }
+    }
+    return { data: { metadata: { parent: true } } }
+  }
+  await hooks.config(config)
+
+  await config.provider.saia.options.fetch("https://chat-ai.academiccloud.de/v1/responses", {
+    method: "POST",
+    headers: { "x-opencode-saia-session": "ses_subagent" },
+    body: '{"model":"glm-4.7"}',
+  })
+  await hooks.flush()
+
+  assert.equal(calls.patches.length, 2)
+  assert.deepEqual(calls.patches[0].path, { sessionID: "ses_subagent" })
+  assert.equal(calls.patches[0].body.metadata.sub, true)
+  assert.ok(calls.patches[0].body.metadata.saiaLimits.subagent)
+
+  assert.deepEqual(calls.patches[1].path, { sessionID: "ses_parent_main" })
+  assert.equal(calls.patches[1].body.metadata.parent, true)
+  assert.ok(calls.patches[1].body.metadata.saiaLimits.subagent)
+})
+
 test("preserves the body when the request is a Request object", async () => {
   const { calls, outgoing, config, hooks } = setup()
   await hooks.config(config)
