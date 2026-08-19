@@ -134,11 +134,23 @@ TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 # Build the new model list
 print_info "Generating opencode.json..."
 
+# Get list of API model IDs
+API_MODEL_IDS=$(echo "$MODELS_JSON" | jq -r '.data[].id' | sort)
+
+# Build final model list (API models + force-include)
+FINAL_MODELS="$API_MODEL_IDS"
+for model_id in "${FORCE_INCLUDE_MODELS[@]}"; do
+    if ! echo "$FINAL_MODELS" | grep -qx "$model_id"; then
+        FINAL_MODELS="$FINAL_MODELS"$'\n'"$model_id"
+        print_info "  Adding (not in API): $model_id"
+    fi
+done
+
 # Initialize empty models JSON
 echo "{}" > "$TEMP_MODELS"
 
-# Process API models
-for model_id in $(echo "$MODELS_JSON" | jq -r '.data[].id' | sort); do
+# Process all models
+echo "$FINAL_MODELS" | while read -r model_id; do
     [[ -z "$model_id" ]] && continue
     
     if [[ -n "${MODEL_METADATA[$model_id]:-}" ]]; then
@@ -176,49 +188,12 @@ for model_id in $(echo "$MODELS_JSON" | jq -r '.data[].id' | sort); do
     fi
 done
 
-# Add force-include models
-for model_id in "${FORCE_INCLUDE_MODELS[@]}"; do
-    if [[ -z "$(jq -r --arg id "$model_id" '.[$id] // empty' "$TEMP_MODELS")" ]]; then
-        if [[ -n "${MODEL_METADATA[$model_id]:-}" ]]; then
-            print_info "  Adding (not in API): $model_id"
-            IFS='|' read -r reasoning input_types context max_tokens description cost latency <<< "${MODEL_METADATA[$model_id]}"
-            category=$(categorize "$model_id")
-            
-            input_json=$(echo "$input_types" | sed 's/,/", "/g' | sed 's/^/["/' | sed 's/$/"]/')
-            
-            model_config=$(jq -n \
-                --arg name "$description" \
-                --argjson reasoning "$reasoning" \
-                --argjson input "$input_json" \
-                --argjson context "$context" \
-                --argjson max_tokens "$max_tokens" \
-                --argjson cost "$cost" \
-                --arg latency "$latency" \
-                --arg cat "$category" \
-                '{
-                    name: $name,
-                    reasoning: $reasoning,
-                    input: $input,
-                    limit: { context: $context, output: $max_tokens },
-                    metadata: {
-                        cost_per_1k_tokens: $cost,
-                        estimated_latency: $latency,
-                        category: $cat
-                    }
-                }')
-            
-            jq --arg id "$model_id" --argjson cfg "$model_config" '. + {($id): $cfg}' "$TEMP_MODELS" > "$TEMP_MODELS.tmp"
-            mv "$TEMP_MODELS.tmp" "$TEMP_MODELS"
-        fi
-    fi
-done
-
 # Add aliases
 for alias in "${!ALIASES[@]}"; do
     target="${ALIASES[$alias]}"
     
-    # Check if target exists in models
-    if [[ -n "$(jq -r --arg id "$target" '.[$id] // empty' "$TEMP_MODELS")" ]]; then
+    # Check if target exists in final model list
+    if echo "$FINAL_MODELS" | grep -qx "$target"; then
         IFS='|' read -r reasoning input_types context max_tokens description cost latency <<< "${MODEL_METADATA[$target]}"
         category=$(categorize "$target")
         
@@ -268,7 +243,7 @@ print_info "  Timestamp: $TIMESTAMP"
 
 # Show summary
 print_info "Model summary:"
-echo "$MODELS_JSON" | jq -r '.data[].id' | sort | while read -r id; do
+echo "$FINAL_MODELS" | while read -r id; do
     if [[ -n "${MODEL_METADATA[$id]:-}" ]]; then
         echo "  ✓ $id"
     else
