@@ -13,6 +13,17 @@ OpenCode plugin that adds all [SAIA](https://chat-ai.academiccloud.de) (GWDG Cha
 2. Generates an `opencode.json` with all SAIA models, properly categorized
 3. Copies it to your project directory so OpenCode picks it up
 
+## 🔄 Auto-Sync Feature
+
+Models are automatically fetched from the SAIA API. To sync the latest models:
+
+```bash
+export SAIA_API_KEY=your_key
+./scripts/sync-saia-models.sh
+```
+
+See [`scripts/README.md`](scripts/README.md) for details on automation and force-include options.
+
 ## Installation
 
 Requires: `SAIA_API_KEY`, `curl`, `jq`

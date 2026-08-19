@@ -25,6 +25,7 @@
     "test": "node --import tsx --test src/*.test.mjs",
     "validate": "bash src/validate-config.sh opencode.json",
     "generate": "bash src/generate-saia-config.sh",
+    "sync-models": "./scripts/sync-saia-models.sh",
     "tsc": "tsc --noEmit --skipLibCheck"
   },
   "repository": {
