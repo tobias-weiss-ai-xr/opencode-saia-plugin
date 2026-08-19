@@ -139,7 +139,18 @@ Restart OpenCode after generating the config.
 
 ## Available Models
 
-The plugin includes 16 SAIA models, fetched live from the API and categorized automatically:
+### 🆕 Latest: Qwen3.8 (August 2026)
+
+The plugin now includes the latest Qwen3.8 family:
+
+| Model | Context | Output | Features |
+|---|---|---|---|
+| **qwen3.8-2.4t-a95b** | 256K | 64K | Flagship reasoning, MoE 2.4T/95B active |
+| **qwen3.8-27b** | 128K | 32K | Vision support, Max-class performance |
+
+### Full Model List
+
+The plugin includes 18 SAIA models, fetched live from the API and categorized automatically:
 
 | Category | Models | Description |
 |---|---|---|
@@ -161,11 +172,11 @@ The plugin generates convenience aliases for quick model selection without memor
 | Alias | Points To | Use Case |
 |---|---|---|
 | `saia/best-for-coding` | qwen3-coder-next | Code-specialized tasks |
-| `saia/best-for-reasoning` | qwen3.5-397b | Complex reasoning, math, planning |
-| `saia/best-for-vision` | qwen3.6-35b | Image analysis, multimodal |
+| `saia/best-for-reasoning` | qwen3.8-2.4t-a95b | Complex reasoning, math, planning |
+| `saia/best-for-vision` | qwen3.8-27b | Image analysis, multimodal |
 | `saia/best-for-agentic` | glm-4.7 | Agentic coding, tool use |
-| `saia/best-quality` | qwen3.5-397b | Highest quality output |
-| `saia/fastest-reasoning` | qwen3-30b-a3b-instruct-2507 | Fast reasoning with low cost |
+| `saia/best-quality` | qwen3.8-2.4t-a95b | Highest quality output |
+| `saia/fastest-reasoning` | qwen3.8-27b | Fast reasoning with vision |
 | `saia/fastest` | meta-llama-3.1-8b | Fastest response time |
 | `saia/budget` | deepseek-v4-flash-0731 | Lowest cost |
 
