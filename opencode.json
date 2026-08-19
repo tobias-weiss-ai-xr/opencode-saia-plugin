@@ -221,6 +221,28 @@
             ]
           }
         },
+        "qwen3.8-2.4t-a95b": {
+          "name": "Qwen3.8 2.4T A95B MoE — Flagship reasoning, best quality",
+          "options": {
+            "enable-tools": true,
+            "enable-auto-tool-choice": true,
+            "tool-call-parser": "openai"
+          },
+          "can_reason": true,
+          "limit": {
+            "context": 256000,
+            "output": 65536
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.045,
+            "estimated_latency": "slow",
+            "recommended_for": [
+              "complex-reasoning",
+              "high-quality-writing",
+              "agentic-tasks"
+            ]
+          }
+        },
         "qwen3-30b-a3b-instruct-2507": {
           "name": "Qwen3 30B Instruct — General purpose",
           "options": {
@@ -331,6 +353,28 @@
             ]
           }
         },
+        "qwen3.8-27b": {
+          "name": "Qwen3.8 27B — Open-source Max-class model",
+          "options": {
+            "enable-tools": true,
+            "enable-auto-tool-choice": true,
+            "tool-call-parser": "openai"
+          },
+          "attachment": true,
+          "limit": {
+            "context": 131072,
+            "output": 32768
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.012,
+            "estimated_latency": "fast",
+            "recommended_for": [
+              "general-purpose",
+              "coding",
+              "daily-tasks"
+            ]
+          }
+        },
         "qwen3-coder-next": {
           "name": "Qwen3 Coder Next — Code-specialized",
           "options": {
@@ -411,7 +455,7 @@
           }
         },
         "best-quality": {
-          "name": "Alias for qwen3.5-397b-a17b",
+          "name": "Alias for qwen3.8-2.4t-a95b",
           "alias": true,
           "options": {
             "enable-tools": true,
@@ -429,7 +473,7 @@
           }
         },
         "fastest-reasoning": {
-          "name": "Alias for deepseek-v4-flash-0731",
+          "name": "Alias for qwen3.8-27b",
           "alias": true,
           "options": {
             "enable-tools": true,
@@ -449,5 +493,5 @@
       }
     }
   },
-  "last_updated": "2026-08-13T17:59:53Z"
+  "last_updated": "2026-08-14T12:00:00Z"
 }
