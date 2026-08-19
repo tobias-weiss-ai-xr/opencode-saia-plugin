@@ -185,7 +185,12 @@ test("the installed updater rolls back the runtime, entrypoints, and TUI registr
 
     await execFile("bash", [path.join(targetDir, "update-plugin.sh"), "--rollback"], {
       cwd: process.cwd(),
-      env: { ...process.env, HOME: home, OPENCODE_CONFIG_DIR: configDir },
+      env: {
+        ...process.env,
+        HOME: home,
+        XDG_CACHE_HOME: path.join(home, ".cache"),
+        OPENCODE_CONFIG_DIR: configDir,
+      },
     })
 
     assert.equal(await readFile(path.join(targetDir, "saia.ts"), "utf8"), expectedRuntime)
