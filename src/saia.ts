@@ -75,16 +75,26 @@ export function createSaiaPlugin(dependencies: SaiaPluginDependencies = {}): Plu
     const reportFailure = (error: unknown) => {
       if (reportedFailure) return
       reportedFailure = true
-      onWarning(`[SAIA] Models were not refreshed: ${errorMessage(error)}. Other providers remain available.`)
+      const msg = errorMessage(error)
+      // Issue #4: Console + warning ensures visibility when no API key configured
+      console.error(`[SAIA] ${msg}`)
+      onWarning(`[SAIA] ${msg}`)
     }
 
     const fetchModels = async (): Promise<SaiaModelsResponse> => {
       const apiKey = await resolveApiKey()
       if (!apiKey) {
-        throw new Error(
-          "No SAIA API key: set SAIA_API_KEY or configure apiKeyCommand in ~/.config/opencode/saia.json",
-        )
-      }
+        const helpMsg = `
+[SAIA] NO API KEY SET.
+Please configure one of:
+  1. Environment variable: SAIA_API_KEY="your-key"
+  2. apiKeyCommand in ~/.config/opencode/saia.json
+  3. Run: /set-saia-api-key
+
+Get your key: https://chat-ai.academiccloud.de
+`
+        throw new Error(helpMsg.trim())}
+
 
       const startedAt = Date.now()
       try {
