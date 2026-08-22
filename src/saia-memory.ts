@@ -12,6 +12,20 @@ const PREFERENCES_FILE = path.join(os.homedir(), ".config", "opencode", "saia-pr
 const PROJECT_CONTEXT_FILE = path.join(process.cwd(), ".opencode", "saia", "context.json")
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
+const L0_TTL_MS = 5 * 60 * 1000 // 5 minutes
+
+// L0: In-memory cache for fast repeated access to same data
+const l0Cache = new Map<string, { data: unknown; timestamp: number }>()
+
+/** Check if L0 caching is enabled. Disable with SAIA_CACHE_L0=false */
+function l0Enabled(): boolean {
+  return process.env.SAIA_CACHE_L0 !== "false"
+}
+
+/** Check if L1 caching is enabled. Disable with SAIA_CACHE_L1=false */
+function l1Enabled(): boolean {
+  return process.env.SAIA_CACHE_L1 !== "false"
+}
 
 /** Ensure cache directory exists */
 export async function ensureCacheDir(cacheDir = CACHE_DIR): Promise<void> {
@@ -30,7 +44,14 @@ export interface FetchWithCacheOptions {
   onInvalidCache?: (message: string) => void
 }
 
-/** Fetch with caching - returns cached data if valid, else fetches and caches */
+/**
+ * Fetch with optional L0 (in-memory) + L1 (disk) caching.
+ * Priority: L0 → L1 → Fetch fresh
+ * 
+ * Environment variables:
+ * - SAIA_CACHE_L0=false: Disable L0 (in-memory) caching
+ * - SAIA_CACHE_L1=false: Disable L1 (disk) caching
+ */
 export async function fetchWithCache<T>(
   fetcher: () => Promise<T>,
   options: boolean | FetchWithCacheOptions = false,
@@ -42,16 +63,29 @@ export async function fetchWithCache<T>(
     isValid = () => true,
     onInvalidCache = console.warn,
   } = typeof options === "boolean" ? { forceRefresh: options } : options
-  await ensureCacheDir(path.dirname(cacheFile))
 
-  // Check cache
-  if (!forceRefresh) {
+  // L0: In-memory cache check (fastest, shortest TTL)
+  const L0_KEY = `fetch:${cacheFile}"
+  if (!forceRefresh && l0Enabled()) {
+    const l0Data = l0Cache.get(L0_KEY)
+    if (l0Data && Date.now() - l0Data.timestamp < L0_TTL_MS) {
+      return { data: l0Data.data as T, cached: true }
+    }
+  }
+
+  // L1: Disk cache check
+  if (!forceRefresh && l1Enabled()) {
+    await ensureCacheDir(path.dirname(cacheFile))
     try {
       const fs = await import("node:fs/promises")
       const cachedRaw = await fs.readFile(cacheFile, "utf8")
       const cached = JSON.parse(cachedRaw)
       const age = Date.now() - cached.timestamp
       if (age < cacheTtlMs && isValid(cached.data)) {
+        // Prime L0 with L1 data for faster subsequent access
+        if (l0Enabled()) {
+          l0Cache.set(L0_KEY, { data: cached.data, timestamp: Date.now() })
+        }
         return { data: cached.data as T, cached: true }
       }
       if (age < cacheTtlMs) {
@@ -65,28 +99,40 @@ export async function fetchWithCache<T>(
   // Fetch fresh data
   const data = await fetcher()
 
-  // Update cache
-  try {
-    const fs = await import("node:fs/promises")
-    const cacheEntry = { data, timestamp: Date.now() }
-    const tmp = cacheFile + ".tmp"
-    await fs.writeFile(tmp, JSON.stringify(cacheEntry, null, 2))
-    await fs.rename(tmp, cacheFile)
-  } catch (err) {
-    console.error(`[SAIA Memory] Failed to write cache: ${err}`)
+  // Store in caches
+  // L0 cache
+  if (l0Enabled()) {
+    l0Cache.set(L0_KEY, { data, timestamp: Date.now() })
+  }
+  // L1 cache
+  if (l1Enabled()) {
+    try {
+      await ensureCacheDir(path.dirname(cacheFile))
+      const fs = await import("node:fs/promises")
+      const cacheEntry = { data, timestamp: Date.now() }
+      const tmp = cacheFile + ".tmp"
+      await fs.writeFile(tmp, JSON.stringify(cacheEntry, null, 2))
+      await fs.rename(tmp, cacheFile)
+    } catch (err) {
+      console.error(`[SAIA Memory] Failed to write L1 cache: ${err}`)
+    }
   }
 
   return { data, cached: false }
 }
 
-/** Clear all cache */
+/** Clear all cache (both L0 and L1) */
 export async function clearCache(): Promise<void> {
+  // Clear L0
+  l0Cache.clear()
+  
+  // Clear L1
   try {
     const fs = await import("node:fs/promises")
     await fs.unlink(CACHE_FILE).catch(() => {})
     console.log("[SAIA Memory] Cache cleared")
   } catch (err) {
-    console.error(`[SAIA Memory] Failed to clear cache: ${err}`)
+    console.error(`[SAIA Memory] Failed to clear L1 cache: ${err}`)
   }
 }
 
@@ -299,5 +345,32 @@ export async function checkForNewModels(
     console.log(`[SAIA Memory] Model changes detected: +${added.length} -${removed.length}`)
   }
 
-  return { added, removed }
+/**
+ * Get cache statistics
+ * Exposed via /saia-cache command for monitoring
+ */
+export function getCacheStats() {
+  // Clean up expired L0 entries
+  const now = Date.now()
+  for (const [key, entry] of l0Cache) {
+    if (now - entry.timestamp >= L0_TTL_MS) {
+      l0Cache.delete(key)
+    }
+  }
+
+  return {
+    l0: {
+      enabled: l0Enabled(),
+      size: l0Cache.size,
+      ttlMs: L0_TTL_MS,
+    },
+    l1: {
+      enabled: l1Enabled(),
+      cacheFile: CACHE_FILE,
+      ttlMs: CACHE_TTL_MS,
+    },
+  }
 }
+
+// Export cache configuration constants
+export { L0_TTL_MS, CACHE_TTL_MS as L1_TTL_MS }

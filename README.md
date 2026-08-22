@@ -252,6 +252,8 @@ Metrics to track: `time_total` (latency), `usage.prompt_tokens`, `usage.completi
 |---|---|---|
 | `SAIA_API_KEY` | Yes | API key for GWDG Chat AI service |
 | `LITELLM_PROXY_URL` | No | Optional LiteLLM proxy URL for caching/rate limiting |
+| `SAIA_CACHE_L0` | No | L0 in-memory cache: `true` (default) or `false` to disable |
+| `SAIA_CACHE_L1` | No | L1 disk cache: `true` (default) or `false` to disable |
 
 ## Comparison with Original GWDG Plugin
 
