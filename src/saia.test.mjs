@@ -213,7 +213,7 @@ test("reports malformed model data once and leaves unrelated providers available
 
   assert.equal(harness.requestCount(), 2)
   assert.equal(harness.warnings.length, 1)
-  assert.match(harness.warnings[0], /Models were not refreshed/)
+  assert.match(harness.warnings[0], /SAIA models response must be an object containing a data array/)
   assert.match(harness.warnings[0], /data array/)
   assert.equal(config.model, "openai/gpt-test")
   assert.deepEqual(config.provider, {

@@ -65,7 +65,7 @@ export async function fetchWithCache<T>(
   } = typeof options === "boolean" ? { forceRefresh: options } : options
 
   // L0: In-memory cache check (fastest, shortest TTL)
-  const L0_KEY = `fetch:${cacheFile}"
+  const L0_KEY = `fetch:${cacheFile}`
   if (!forceRefresh && l0Enabled()) {
     const l0Data = l0Cache.get(L0_KEY)
     if (l0Data && Date.now() - l0Data.timestamp < L0_TTL_MS) {
@@ -344,6 +344,7 @@ export async function checkForNewModels(
   if (added.length > 0 || removed.length > 0) {
     console.log(`[SAIA Memory] Model changes detected: +${added.length} -${removed.length}`)
   }
+}
 
 /**
  * Get cache statistics
