@@ -166,7 +166,7 @@ categorize() {
         teuken*|sauerkraut*)
             echo "research"
             ;;
-        glm-4.7|devstral*|mistral-medium*)
+        glm-5.3-flash|devstral*|mistral-medium*)
             echo "agentic"
             ;;
         *120b|*128b|*235b|*675b|mistral-medium*|mistral-large*)
@@ -206,7 +206,7 @@ get_estimated_latency_ms() {
         *35b-a3b*|*30b*|*128b*)    echo "moderate" ;; # ~200ms
         qwen3.5-122b*)            echo "slow" ;;    # ~300ms (MoE routing)
         qwen3-coder-next)         echo "fast" ;;    # optimized for coding
-        glm-4.7)                  echo "fast" ;;    # optimized for agentic use
+        glm-5.3-flash)                  echo "fast" ;;    # optimized for agentic use
         *70b*|*120b*)             echo "slow" ;;    # ~350ms
         *397b*|*675b*)            echo "very-slow" ;; # ~500ms+ (maximum quality)
         *)                        echo "moderate" ;; # default
@@ -219,7 +219,7 @@ get_recommended_for() {
         *coder*)                 echo "agentic-coding,code-refactor,debug" ;;
         *thinking*|*r1*)          echo "complex-reasoning,math,planning" ;;
         deepseek-v4-flash*)       echo "fast-reasoning,general-purpose,cost-optimization" ;;
-        glm-4.7|devstral*|mistral-medium*) echo "agentic-coding,tool-use,architecture" ;;
+        glm-5.3-flash|devstral*|mistral-medium*) echo "agentic-coding,tool-use,architecture" ;;
         medical*)                echo "medical-qa,healthcare,biomedical" ;;
         qwen3.5-397b*)           echo "complex-reasoning,high-quality-writing" ;;
         qwen3.5-122b*)           echo "balanced-response,fast-reasoning" ;;
@@ -255,7 +255,7 @@ include_in_profile_production() {
 
     # Production: Highest quality models for critical work
     case "$id" in
-        qwen3.5-397b-a17b|qwen3.5-122b-a10b|openai-gpt-oss-120b|mistral-medium-3.5-128b|glm-4.7|devstral-2*)
+        qwen3.5-397b-a17b|qwen3.5-122b-a10b|openai-gpt-oss-120b|mistral-medium-3.5-128b|glm-5.3-flash|devstral-2*)
             echo "true"
             ;;
         deepseek-v4-flash*)
@@ -276,7 +276,7 @@ include_in_profile_development() {
 
     # Development: Balanced models for active development
     case "$id" in
-        qwen3.6-35b-a3b|qwen3.6-27b|qwen3-coder-next|glm-4.7|deepseek-v4-flash*|mistral-medium-3.5-128b)
+        qwen3.6-35b-a3b|qwen3.6-27b|qwen3-coder-next|glm-5.3-flash|deepseek-v4-flash*|mistral-medium-3.5-128b)
             echo "true"
             ;;
         gemma-4-31b-it|apertus-70b*)
@@ -309,7 +309,7 @@ get_profile_default_model() {
     local profile="$1"
     case "$profile" in
         production)
-            echo "glm-4.7"
+            echo "glm-5.3-flash"
             ;;
         development|dev)
             echo "qwen3.6-35b-a3b"
@@ -318,7 +318,7 @@ get_profile_default_model() {
             echo "deepseek-v4-flash-0731"
             ;;
         *)
-            echo "glm-4.7"
+            echo "glm-5.3-flash"
             ;;
     esac
 }
@@ -338,7 +338,7 @@ describe() {
         mistral-medium-3.5-128b) echo "Mistral Medium 3.5 128B — Balanced large context model" ;;
         openai-gpt-oss-120b)     echo "OpenAI GPT-OSS 120B — Large context model" ;;
         devstral-2-123b-instruct-2512) echo "Devstral 2 123B — Mistral's agentic coder" ;;
-        glm-4.7)                 echo "GLM-4.7 (128k ctx) — Agentic coding, strong tool use" ;;
+        glm-5.3-flash)                 echo "GLM-5.3-Flash (128k ctx) — Agentic coding, strong tool use" ;;
         deepseek-v4-flash-0731)    echo "DeepSeek V4 Flash (128k ctx) — Fast reasoning, lightweight" ;;
         gemma-4-31b-it)          echo "Gemma 4 31B — Google latest" ;;
         apertus-70b-instruct-2509) echo "Apertus 70B — Open-source instruct model" ;;
@@ -366,7 +366,7 @@ can_reason() {
 get_context_window() {
     local id="$1"
     case "$id" in
-        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.6-35b-a3b|qwen3.6-27b|glm-4.7|meta-llama-3.1-8b-instruct|apertus-70b-instruct-2509|devstral-2-123b-instruct-2512|openai-gpt-oss-120b|mistral-medium-3.5-128b|deepseek-v4-flash-0731)
+        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.6-35b-a3b|qwen3.6-27b|glm-5.3-flash|meta-llama-3.1-8b-instruct|apertus-70b-instruct-2509|devstral-2-123b-instruct-2512|openai-gpt-oss-120b|mistral-medium-3.5-128b|deepseek-v4-flash-0731)
             echo "128000"
             ;;
         gemma-4-31b-it|qwen3-coder-next|qwen3-30b-a3b-instruct-2507)
@@ -399,7 +399,7 @@ get_output_window() {
         qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.6-35b-a3b|mistral-medium-3.5-128b)
             echo "32768"
             ;;
-        glm-4.7|devstral-2-123b-instruct-2512|qwen3-coder-next|deepseek-v4-flash-0731|qwen3.6-27b)
+        glm-5.3-flash|devstral-2-123b-instruct-2512|qwen3-coder-next|deepseek-v4-flash-0731|qwen3.6-27b)
             echo "16384"
             ;;
         qwen3-30b-a3b-instruct-2507)
@@ -516,7 +516,7 @@ ALIASES=(
     "best-for-coding:qwen3-coder-next"
     "best-for-reasoning:qwen3.5-397b-a17b"
     "best-for-vision:qwen3.6-35b-a3b"
-    "best-for-agentic:glm-4.7"
+    "best-for-agentic:glm-5.3-flash"
     "best-quality:qwen3.5-397b-a17b"
     "fastest:meta-llama-3.1-8b-instruct"
     "fastest-reasoning:deepseek-v4-flash-0731"

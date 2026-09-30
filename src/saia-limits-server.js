@@ -2,6 +2,10 @@ const INTERNAL_SESSION_HEADER = "x-opencode-saia-session"
 const SAIA_ORIGIN = "https://chat-ai.academiccloud.de"
 const WRAPPED_FETCH = Symbol.for("opencode-saia-plugin.limits-fetch")
 
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+}
+
 function requestURL(input) {
   try {
     if (typeof input === "string") return new URL(input)
@@ -61,25 +65,29 @@ function limitsFrom(response) {
   }
 }
 
-async function saveLimits(client, sessionID, limits) {
-  const transport = client?._client
+// Persists quota snapshots as session metadata. `target` is either an OpenCode 2.x
+// session domain ({ get, update }) or a V1 SDK client whose raw HTTP transport is
+// used directly (the V1 generated wrapper omits the metadata field).
+async function saveLimits(target, sessionID, limits) {
+  if (typeof target?.get === "function" && typeof target?.update === "function") {
+    const current = await target.get({ sessionID })
+    const metadata = isRecord(current?.metadata) ? current.metadata : {}
+    await target.update({ sessionID, metadata: { ...metadata, saiaLimits: limits } })
+    return
+  }
+
+  const transport = target?._client
   if (!transport || typeof transport.get !== "function" || typeof transport.patch !== "function") {
     throw new Error("OpenCode's HTTP client is unavailable")
   }
 
-  // OpenCode 1.18.16 supports session metadata, but its generated SDK wrapper
-  // omits that field. Use the same configured transport directly so its
-  // directory and authentication context are retained.
   const current = unwrap(
     await transport.get({
       url: "/session/{sessionID}",
       path: { sessionID },
     }),
   )
-  const metadata =
-    current?.metadata && typeof current.metadata === "object" && !Array.isArray(current.metadata)
-      ? current.metadata
-      : {}
+  const metadata = isRecord(current?.metadata) ? current.metadata : {}
 
   await transport.patch({
     url: "/session/{sessionID}",
@@ -94,14 +102,14 @@ async function saveLimits(client, sessionID, limits) {
   })
 }
 
-export function createSaiaLimitsHooks(client, { onWarning = console.warn } = {}) {
+function createLimitsSaver(target, { onWarning = console.warn } = {}) {
   const pendingWrites = new Map()
 
   function enqueueLimitsSave(sessionID, limits) {
     const previous = pendingWrites.get(sessionID) ?? Promise.resolve()
     const current = previous
       .catch(() => {})
-      .then(() => saveLimits(client, sessionID, limits))
+      .then(() => saveLimits(target, sessionID, limits))
 
     pendingWrites.set(sessionID, current)
     void current.then(
@@ -122,6 +130,12 @@ export function createSaiaLimitsHooks(client, { onWarning = console.warn } = {})
       await Promise.allSettled([...pendingWrites.values()])
     }
   }
+
+  return { enqueueLimitsSave, flush }
+}
+
+export function createSaiaLimitsHooks(client, { onWarning = console.warn } = {}) {
+  const { enqueueLimitsSave, flush } = createLimitsSaver(client, { onWarning })
 
   return {
     config(config) {
@@ -164,6 +178,22 @@ export function createSaiaLimitsHooks(client, { onWarning = console.warn } = {})
     "chat.headers"(input, output) {
       if (input.model.providerID !== "saia") return
       output.headers[INTERNAL_SESSION_HEADER] = input.sessionID
+    },
+
+    flush,
+  }
+}
+
+// OpenCode 2.x: quota headers are read off the native response in the
+// "http.response" session hook; no fetch wrapping needed.
+export function createSaiaV2LimitsHooks(sessionDomain, { onWarning = console.warn } = {}) {
+  const { enqueueLimitsSave, flush } = createLimitsSaver(sessionDomain, { onWarning })
+
+  return {
+    async "http.response"(event) {
+      if (event?.model?.providerID !== "saia") return
+      const limits = limitsFrom(event.response)
+      if (limits) enqueueLimitsSave(event.sessionID, limits)
     },
 
     flush,

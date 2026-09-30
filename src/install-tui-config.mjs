@@ -6,9 +6,13 @@ import { pathToFileURL } from "node:url"
 
 export const TUI_PLUGIN_PATH = "./plugins/saia-limits-tui.tsx"
 
-function hasPlugin(entries) {
-  return entries.some((entry) => entry === TUI_PLUGIN_PATH)
-}
+// OpenCode 1.x reads the TUI plugin list from tui.json ("plugin" array).
+// OpenCode 2.x reads cli.json ("plugins" array). Both are maintained so the
+// install works under either major version.
+const TUI_CONFIGS = Object.freeze([
+  { file: "tui.json", key: "plugin", schema: "https://opencode.ai/tui.json" },
+  { file: "cli.json", key: "plugins", schema: undefined },
+])
 
 async function fileExists(file) {
   try {
@@ -19,9 +23,8 @@ async function fileExists(file) {
   }
 }
 
-export async function installTuiPlugin(configDir = path.join(homedir(), ".config", "opencode")) {
-  await mkdir(configDir, { recursive: true })
-  const configPath = path.join(configDir, "tui.json")
+async function upsertPluginEntry(configDir, { file, key, schema }) {
+  const configPath = path.join(configDir, file)
   let config = {}
   const exists = await fileExists(configPath)
 
@@ -36,17 +39,17 @@ export async function installTuiPlugin(configDir = path.join(homedir(), ".config
   if (!config || typeof config !== "object" || Array.isArray(config)) {
     throw new Error(`Cannot update ${configPath}: expected a JSON object`)
   }
-  if (config.plugin !== undefined && !Array.isArray(config.plugin)) {
-    throw new Error(`Cannot update ${configPath}: expected "plugin" to be an array`)
+  if (config[key] !== undefined && !Array.isArray(config[key])) {
+    throw new Error(`Cannot update ${configPath}: expected "${key}" to be an array`)
   }
 
-  const plugins = config.plugin ?? []
-  const changed = !hasPlugin(plugins)
-  const schemaAdded = config.$schema === undefined
+  const plugins = config[key] ?? []
+  const changed = !plugins.includes(TUI_PLUGIN_PATH)
   if (changed) plugins.push(TUI_PLUGIN_PATH)
 
-  config.$schema ??= "https://opencode.ai/tui.json"
-  config.plugin = plugins
+  config[key] = plugins
+  const schemaAdded = schema !== undefined && config.$schema === undefined
+  if (schemaAdded) config.$schema = schema
 
   if (changed || schemaAdded || !exists) {
     const temporaryPath = `${configPath}.${process.pid}.tmp`
@@ -57,12 +60,26 @@ export async function installTuiPlugin(configDir = path.join(homedir(), ".config
   return { changed, configPath }
 }
 
+export async function installTuiPlugin(configDir = path.join(homedir(), ".config", "opencode")) {
+  await mkdir(configDir, { recursive: true })
+
+  const results = await Promise.all(TUI_CONFIGS.map((entry) => upsertPluginEntry(configDir, entry)))
+
+  return {
+    changed: results.some((result) => result.changed),
+    configPath: results[0].configPath,
+    cliChanged: results[1].changed,
+    cliConfigPath: results[1].configPath,
+  }
+}
+
 async function isMainModule() {
   if (!process.argv[1]) return false
   return import.meta.url === pathToFileURL(await realpath(process.argv[1])).href
 }
 
 if (await isMainModule()) {
-  const { changed, configPath } = await installTuiPlugin(process.argv[2])
+  const { changed, configPath, cliChanged, cliConfigPath } = await installTuiPlugin(process.argv[2])
   console.log(`${changed ? "Configured" : "Already configured"} ${configPath}`)
+  console.log(`${cliChanged ? "Configured" : "Already configured"} ${cliConfigPath}`)
 }

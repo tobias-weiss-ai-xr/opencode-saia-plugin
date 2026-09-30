@@ -12,7 +12,7 @@ Trigger this skill when:
 ## Profiles
 
 ### Production
-- Highest quality models (glm-4-plus, glm-4.7)
+- Highest quality models (glm-5.3-flash, glm-4-plus)
 - Best for critical code reviews, architecture decisions
 - Higher cost, best quality
 - Default profile

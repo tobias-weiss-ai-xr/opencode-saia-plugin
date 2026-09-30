@@ -64,6 +64,11 @@ The SAIA plugin connects OpenCode to SAIA (GWDG Chat AI) models through a layere
 
 ## Data Flow
 
+The plugin default-exports the dual V1+V2 definition: OpenCode 2.x calls
+`setup(ctx)` (provider/model transforms + `http.response`/`context` session
+hooks), OpenCode ≥1.18.29 calls `server()` (V1 `config`/`chat.headers`/
+`experimental.chat.system.transform` hooks). Both paths share one model loader.
+
 1. **OpenCode starts** → loads plugin system
 2. **saia.ts is triggered** → checks API cache (24h TTL)
 3. **Cache hit** → uses cached model list
@@ -93,6 +98,6 @@ The SAIA plugin connects OpenCode to SAIA (GWDG Chat AI) models through a layere
 
 | Profile    | Model Count | Default Model         | Use Case           |
 |------------|-------------|-----------------------|--------------------|
-| production | ~8-9        | glm-4.7              | Critical work      |
+| production | ~8-9        | glm-5.3-flash              | Critical work      |
 | dev        | ~7-8        | qwen3.5-35b-a3b      | Active development |
 | budget     | ~4          | llama-3.1-8b-instruct| Cost optimization  |

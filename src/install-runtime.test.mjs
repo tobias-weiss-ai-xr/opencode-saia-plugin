@@ -136,13 +136,16 @@ test("the installed server and TUI entrypoints import through the installed layo
     const code = `
       import server from ${JSON.stringify(serverURL)}
       import tui, { displayLimits } from ${JSON.stringify(tuiURL)}
-      const hooks = await server({ client: { app: { async log() {} } } })
-      let registered
-      await tui.tui({ slots: { register(value) { registered = value } } })
+      const hooks = await server.server({ client: { app: { async log() {} } } })
+      let claim
+      tui.setup({ ui: { slot(value) { claim = value } } })
       console.log(JSON.stringify({
+        id: server.id,
+        setup: typeof server.setup,
         config: typeof hooks.config,
         headers: typeof hooks["chat.headers"],
-        slot: typeof registered.slots.session_prompt_right,
+        slot: claim.append,
+        render: typeof claim.render,
         limits: displayLimits({ minute: 1 }),
       }))
     `
@@ -151,9 +154,12 @@ test("the installed server and TUI entrypoints import through the installed layo
     })
 
     assert.deepEqual(JSON.parse(stdout), {
+      id: "saia",
+      setup: "function",
       config: "function",
       headers: "function",
-      slot: "function",
+      slot: "prompt.footer",
+      render: "function",
       limits: "1/m",
     })
   })

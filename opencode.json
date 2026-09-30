@@ -19,7 +19,7 @@
     "mymcp_*": "ask"
   },
   "formatter": {},
-  "model": "saia/glm-4.7",
+  "model": "saia/glm-5.3-flash",
   "provider": {
     "saia": {
       "npm": "@ai-sdk/openai-compatible",
@@ -94,15 +94,15 @@
             "category": "general"
           }
         },
-        "glm-4.7": {
-          "name": "GLM 4.7 (SAIA)",
+        "glm-5.3-flash": {
+          "name": "GLM 5.3 Flash (SAIA)",
           "reasoning": false,
           "input": [
             "text"
           ],
           "limit": {
             "context": 131072,
-            "output": 16384
+            "output": 32768
           },
           "metadata": {
             "cost_per_1k_tokens": 0.015,
@@ -325,7 +325,7 @@
           }
         },
         "best-for-agentic": {
-          "name": "best-for-agentic → glm-4.7",
+          "name": "best-for-agentic → glm-5.3-flash",
           "reasoning": false,
           "input": [
             "text"
@@ -338,7 +338,7 @@
             "cost_per_1k_tokens": 0.015,
             "estimated_latency": "fast",
             "category": "agentic",
-            "alias_of": "glm-4.7"
+            "alias_of": "glm-5.3-flash"
           }
         },
         "best-for-reasoning": {

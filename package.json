@@ -1,6 +1,6 @@
 {
   "name": "opencode-saia-plugin",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Runtime SAIA (GWDG Chat AI) plugin for OpenCode",
   "type": "module",
   "main": "./src/saia.ts",
@@ -51,7 +51,8 @@
     "node": ">=20.0.0"
   },
   "devDependencies": {
-    "@opencode-ai/plugin": "1.18.16",
+    "@opencode-ai/plugin": "^1.18.33",
+    "@opencode/plugin": "2.0.20",
     "@opentui/core": "0.4.5",
     "@opentui/keymap": "0.4.5",
     "@opentui/solid": "0.4.5",

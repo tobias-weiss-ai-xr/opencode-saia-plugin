@@ -47,7 +47,7 @@ npm run validate            # bash src/validate-config.sh opencode.json  (actual
 
 ### US1 — Decorates an empty config with only ready models
 - **Then** only `status: "ready"` models are kept, the default model is
-  `saia/glm-4.7`, `apiKey` is injected, `managedModels` are recorded, and
+  `saia/glm-5.3-flash`, `apiKey` is injected, `managedModels` are recorded, and
   metrics (`api`/`refresh`) are updated.
 - **Test:** `saia.test.mjs` → "decorates an empty config in memory with only
   ready SAIA models".

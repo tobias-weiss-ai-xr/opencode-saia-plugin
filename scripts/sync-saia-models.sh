@@ -79,7 +79,7 @@ MODEL_METADATA=(
     "gemma-4-31b-it|false|text,image|131072|8192|Gemma 4 31B (SAIA)|0.012|moderate"
     "apertus-70b-instruct-2509|false|text|131072|8192|Apertus 70B (SAIA)|0.025|slow"
     "meta-llama-3.1-8b-instruct|false|text|131072|4096|Meta Llama 3.1 8B (SAIA)|0.003|fast"
-    "glm-4.7|false|text|131072|16384|GLM 4.7 (SAIA)|0.015|fast"
+    "glm-5.3-flash|false|text|131072|32768|GLM 5.3 Flash (SAIA)|0.015|fast"
 )
 
 # Models to add even if not in API response (newly released, not yet deployed)
@@ -94,7 +94,7 @@ ALIASES=(
     "best-for-reasoning|qwen3.8-2.4t-a95b"
     "best-quality|qwen3.8-2.4t-a95b"
     "best-for-vision|qwen3.8-27b"
-    "best-for-agentic|glm-4.7"
+    "best-for-agentic|glm-5.3-flash"
     "fastest|meta-llama-3.1-8b-instruct"
     "fastest-reasoning|qwen3.8-27b"
     "budget|deepseek-v4-flash-0731"
@@ -125,7 +125,7 @@ categorize() {
         medgemma*)
             echo "medical"
             ;;
-        devstral*|mistral-medium*|glm-4.7)
+        devstral*|mistral-medium*|glm-5.3-flash)
             echo "agentic"
             ;;
         *120b|*128b|*235b|*675b)

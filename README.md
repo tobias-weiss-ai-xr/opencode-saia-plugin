@@ -2,6 +2,12 @@
 
 OpenCode plugin that adds all [SAIA](https://chat-ai.academiccloud.de) (GWDG Chat AI) models to your OpenCode setup.
 
+> **OpenCode 2.x**: supported since plugin v0.4.0. The server plugin (`saia-plugin.ts`)
+> exports the dual V1+V2 definition — OpenCode 2.x reads `id` + `setup(ctx)`,
+> OpenCode ≥1.18.29 calls `server()`. The TUI quota widget registers the
+> `prompt.footer` slot (OpenCode 2.x) or `session_prompt_right` (1.x) and is
+> registered in both `cli.json` (`plugins`, v2) and `tui.json` (`plugin`, v1).
+
 **Repositories:** 
 - **Primary (active development):** [GitHub](https://github.com/tobias-weiss-ai-xr/opencode-saia-plugin)
 - **Legacy mirror:** [Codeberg](https://codeberg.org/graphwiz-ai/opencode-saia-plugin) (synced periodically, PRs welcome but development happens on GitHub)
@@ -177,7 +183,7 @@ The plugin includes 18 SAIA models, fetched live from the API and categorized au
 | **Large Context** | OpenAI GPT-OSS 120B, Mistral Medium 3.5 128B | 128k+ context windows |
 | **General** | Qwen3.6 27B, Qwen3 30B, DeepSeek V4 Flash, Apertus 70B, Llama 3.1 8B, etc. | General-purpose models |
 
-Default model: `saia/glm-4.7`
+Default model: `saia/glm-5.3-flash`
 
 Models marked with `can_reason: true` enable OpenCode's reasoning mode (chain-of-thought). Use `/model` in OpenCode to switch models.
 
@@ -190,7 +196,7 @@ The plugin generates convenience aliases for quick model selection without memor
 | `saia/best-for-coding` | qwen3-coder-next | Code-specialized tasks |
 | `saia/best-for-reasoning` | qwen3.8-2.4t-a95b | Complex reasoning, math, planning |
 | `saia/best-for-vision` | qwen3.8-27b | Image analysis, multimodal |
-| `saia/best-for-agentic` | glm-4.7 | Agentic coding, tool use |
+| `saia/best-for-agentic` | glm-5.3-flash | Agentic coding, tool use |
 | `saia/best-quality` | qwen3.8-2.4t-a95b | Highest quality output |
 | `saia/fastest-reasoning` | qwen3.8-27b | Fast reasoning with vision |
 | `saia/fastest` | meta-llama-3.1-8b | Fastest response time |
@@ -231,7 +237,7 @@ curl -s -w "\nTime: %{time_total}s\n" \
   -H "Authorization: Bearer $SAIA_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "glm-4.7",
+    "model": "glm-5.3-flash",
     "messages": [{"role": "user", "content": "Explain async/await in JavaScript in 3 sentences."}],
     "max_tokens": 200
   }' | jq '.usage'
