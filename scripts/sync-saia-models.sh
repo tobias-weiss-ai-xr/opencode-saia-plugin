@@ -48,38 +48,38 @@ print_info "Found $MODEL_COUNT models from SAIA API"
 
 # Model metadata (curated knowledge)
 # Format: id|reasoning|input_types|context|max_tokens|description|cost_per_1k|latency
-declare -A MODEL_METADATA=(
+MODEL_METADATA=(
     # Reasoning models
-    ["qwen3.8-2.4t-a95b"]="true|text|256000|65536|Qwen 3.8 2.4T A95B (SAIA)|0.125|very-slow"
-    ["qwen3.5-397b-a17b"]="true|text,image|131072|32768|Qwen 3.5 397B (SAIA)|0.125|very-slow"
-    ["qwen3.5-122b-a10b"]="true|text,image|131072|32768|Qwen 3.5 122B (SAIA)|0.075|slow"
-    ["qwen3-30b-a3b-instruct-2507"]="true|text|131072|16384|Qwen 3 30B (SAIA)|0.018|moderate"
+    "qwen3.8-2.4t-a95b|true|text|256000|65536|Qwen 3.8 2.4T A95B (SAIA)|0.125|very-slow"
+    "qwen3.5-397b-a17b|true|text,image|131072|32768|Qwen 3.5 397B (SAIA)|0.125|very-slow"
+    "qwen3.5-122b-a10b|true|text,image|131072|32768|Qwen 3.5 122B (SAIA)|0.075|slow"
+    "qwen3-30b-a3b-instruct-2507|true|text|131072|16384|Qwen 3 30B (SAIA)|0.018|moderate"
     
     # Agentic models
-    ["devstral-2-123b-instruct-2512"]="false|text|131072|16384|DevStral 2 123B (SAIA)|0.075|slow"
-    ["mistral-medium-3.5-128b"]="false|text|131072|8192|Mistral Medium 3.5 128B (SAIA)|0.075|slow"
-    ["qwen3.6-35b-a3b"]="false|text,image|131072|16384|Qwen 3.6 35B (SAIA)|0.018|moderate"
+    "devstral-2-123b-instruct-2512|false|text|131072|16384|DevStral 2 123B (SAIA)|0.075|slow"
+    "mistral-medium-3.5-128b|false|text|131072|8192|Mistral Medium 3.5 128B (SAIA)|0.075|slow"
+    "qwen3.6-35b-a3b|false|text,image|131072|16384|Qwen 3.6 35B (SAIA)|0.018|moderate"
     
     # Coder
-    ["qwen3-coder-next"]="false|text|131072|16384|Qwen 3 Coder Next (SAIA)|0.015|fast"
+    "qwen3-coder-next|false|text|131072|16384|Qwen 3 Coder Next (SAIA)|0.015|fast"
     
     # Large Context
-    ["openai-gpt-oss-120b"]="false|text|131072|8192|GPT-OSS 120B (SAIA)|0.075|slow"
+    "openai-gpt-oss-120b|false|text|131072|8192|GPT-OSS 120B (SAIA)|0.075|slow"
     
     # Medical
-    ["medgemma-27b-it"]="false|text,image|32768|4096|MedGemma 27B (SAIA)|0.012|moderate"
+    "medgemma-27b-it|false|text,image|32768|4096|MedGemma 27B (SAIA)|0.012|moderate"
     
     # Vision
-    ["qwen3-omni-30b-a3b-instruct"]="false|text,image|32768|4096|Qwen 3 Omni 30B (SAIA)|0.018|moderate"
+    "qwen3-omni-30b-a3b-instruct|false|text,image|32768|4096|Qwen 3 Omni 30B (SAIA)|0.018|moderate"
     
     # General
-    ["qwen3.8-27b"]="false|text,image|131072|32768|Qwen 3.8 27B (SAIA)|0.006|moderate"
-    ["deepseek-v4-flash-0731"]="false|text|131072|16384|DeepSeek V4 Flash (SAIA)|0.008|fast"
-    ["qwen3.6-27b"]="false|text|131072|16384|Qwen 3.6 27B (SAIA)|0.006|moderate"
-    ["gemma-4-31b-it"]="false|text,image|131072|8192|Gemma 4 31B (SAIA)|0.012|moderate"
-    ["apertus-70b-instruct-2509"]="false|text|131072|8192|Apertus 70B (SAIA)|0.025|slow"
-    ["meta-llama-3.1-8b-instruct"]="false|text|131072|4096|Meta Llama 3.1 8B (SAIA)|0.003|fast"
-    ["glm-4.7"]="false|text|131072|16384|GLM 4.7 (SAIA)|0.015|fast"
+    "qwen3.8-27b|false|text,image|131072|32768|Qwen 3.8 27B (SAIA)|0.006|moderate"
+    "deepseek-v4-flash-0731|false|text|131072|16384|DeepSeek V4 Flash (SAIA)|0.008|fast"
+    "qwen3.6-27b|false|text|131072|16384|Qwen 3.6 27B (SAIA)|0.006|moderate"
+    "gemma-4-31b-it|false|text,image|131072|8192|Gemma 4 31B (SAIA)|0.012|moderate"
+    "apertus-70b-instruct-2509|false|text|131072|8192|Apertus 70B (SAIA)|0.025|slow"
+    "meta-llama-3.1-8b-instruct|false|text|131072|4096|Meta Llama 3.1 8B (SAIA)|0.003|fast"
+    "glm-4.7|false|text|131072|16384|GLM 4.7 (SAIA)|0.015|fast"
 )
 
 # Models to add even if not in API response (newly released, not yet deployed)
@@ -89,16 +89,25 @@ declare -a FORCE_INCLUDE_MODELS=(
 )
 
 # Aliases
-declare -A ALIASES=(
-    ["best-for-coding"]="qwen3-coder-next"
-    ["best-for-reasoning"]="qwen3.8-2.4t-a95b"
-    ["best-quality"]="qwen3.8-2.4t-a95b"
-    ["best-for-vision"]="qwen3.8-27b"
-    ["best-for-agentic"]="glm-4.7"
-    ["fastest"]="meta-llama-3.1-8b-instruct"
-    ["fastest-reasoning"]="qwen3.8-27b"
-    ["budget"]="deepseek-v4-flash-0731"
+ALIASES=(
+    "best-for-coding|qwen3-coder-next"
+    "best-for-reasoning|qwen3.8-2.4t-a95b"
+    "best-quality|qwen3.8-2.4t-a95b"
+    "best-for-vision|qwen3.8-27b"
+    "best-for-agentic|glm-4.7"
+    "fastest|meta-llama-3.1-8b-instruct"
+    "fastest-reasoning|qwen3.8-27b"
+    "budget|deepseek-v4-flash-0731"
 )
+
+# Metadata lookup by model id (plain indexed array — bash 3.2 compatible, no `declare -A`)
+meta_for() {
+    local want="$1" row
+    for row in "${MODEL_METADATA[@]}"; do
+        [[ "$row" == "${want}|"* ]] && { printf '%s' "${row#*|}"; return 0; }
+    done
+    return 1
+}
 
 # Categorize model based on ID
 categorize() {
@@ -153,8 +162,8 @@ echo "{}" > "$TEMP_MODELS"
 echo "$FINAL_MODELS" | while read -r model_id; do
     [[ -z "$model_id" ]] && continue
     
-    if [[ -n "${MODEL_METADATA[$model_id]:-}" ]]; then
-        IFS='|' read -r reasoning input_types context max_tokens description cost latency <<< "${MODEL_METADATA[$model_id]}"
+    if meta=$(meta_for "$model_id"); then
+        IFS='|' read -r reasoning input_types context max_tokens description cost latency <<< "$meta"
         category=$(categorize "$model_id")
         
         # Format input types as JSON array
@@ -189,12 +198,13 @@ echo "$FINAL_MODELS" | while read -r model_id; do
 done
 
 # Add aliases
-for alias in "${!ALIASES[@]}"; do
-    target="${ALIASES[$alias]}"
+for alias_row in "${ALIASES[@]}"; do
+    alias="${alias_row%%|*}"
+    target="${alias_row#*|}"
     
     # Check if target exists in final model list
     if echo "$FINAL_MODELS" | grep -qx "$target"; then
-        IFS='|' read -r reasoning input_types context max_tokens description cost latency <<< "${MODEL_METADATA[$target]}"
+        IFS='|' read -r reasoning input_types context max_tokens description cost latency <<< "$(meta_for "$target")"
         category=$(categorize "$target")
         
         input_json=$(echo "$input_types" | sed 's/,/", "/g' | sed 's/^/["/' | sed 's/$/"]/')
@@ -244,7 +254,7 @@ print_info "  Timestamp: $TIMESTAMP"
 # Show summary
 print_info "Model summary:"
 echo "$FINAL_MODELS" | while read -r id; do
-    if [[ -n "${MODEL_METADATA[$id]:-}" ]]; then
+    if meta_for "$id" >/dev/null; then
         echo "  ✓ $id"
     else
         echo "  ⚠ $id (no metadata)"
