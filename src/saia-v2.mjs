@@ -8,9 +8,12 @@
 //   Provider.Info        => { id, name, activation, package, settings, ... }
 
 import { SAIA_BASE_URL } from "./saia-config.mjs"
+import { DEFAULT_SAIA_MODEL } from "./saia-model-metadata.js"
+import { SAIA_ALIASES, isSaiaAlias } from "./saia-aliases.mjs"
 
 export const SAIA_PROVIDER_ID = "saia"
-export const DEFAULT_SAIA_MODEL = "glm-5.3-flash"
+// Re-exported for callers that already import it from here.
+export { DEFAULT_SAIA_MODEL }
 
 // V1 config used @ai-sdk/* package ids; v2 renames the provider packages.
 const V2_PACKAGES = Object.freeze({
@@ -122,6 +125,17 @@ export function decorateSaiaV2Provider({
     .map((model) => saiaModelInfoFromApiModel(model))
     .sort((a, b) => a.id.localeCompare(b.id))
 
+  // Aliases: the target's Model.Info under the shortcut's key, with `modelID`
+  // pointing at the real model. OpenCode 2.x sends `id` upstream unless
+  // `modelID` overrides it, so without this a shortcut answers 404.
+  const generatedByID = new Map(generated.map((model) => [model.id, model]))
+  for (const [alias, target] of Object.entries(SAIA_ALIASES)) {
+    const entry = generatedByID.get(target)
+    if (!entry) continue
+    generated.push({ ...entry, id: alias, modelID: target, name: `${alias} → ${target}` })
+  }
+  generated.sort((a, b) => a.id.localeCompare(b.id))
+
   const generatedIDs = new Set(generated.map((model) => model.id))
   const existingByID = new Map(
     asList(existingModels)
@@ -143,7 +157,11 @@ export function decorateSaiaV2Provider({
   merged.sort((a, b) => a.id.localeCompare(b.id))
 
   const modelIDs = merged.map((model) => model.id)
-  const firstAvailable = modelIDs.includes(DEFAULT_SAIA_MODEL) ? DEFAULT_SAIA_MODEL : modelIDs[0]
+  // Aliases are selectable but never *chosen* as the default.
+  const defaultCandidates = modelIDs.filter((id) => !isSaiaAlias(id))
+  const firstAvailable = defaultCandidates.includes(DEFAULT_SAIA_MODEL)
+    ? DEFAULT_SAIA_MODEL
+    : defaultCandidates[0]
   const selected = preferredModel && modelIDs.includes(preferredModel) ? preferredModel : firstAvailable
 
   return {
@@ -168,7 +186,7 @@ export function saiaProviderInfo({ package: providerPackage, apiKey }) {
   }
 }
 
-// The current default model is unavailable (e.g. glm-4.7 after SAIA retired it)
+// The current default model is unavailable (e.g. a model SAIA has retired)
 // or unset: the plugin should repoint the default to a live SAIA model.
 export function shouldReplaceDefaultModel(current, modelIDs) {
   if (!current) return true

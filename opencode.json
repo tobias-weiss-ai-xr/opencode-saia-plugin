@@ -32,9 +32,7 @@
         "apertus-70b-instruct-2509": {
           "name": "Apertus 70B Instruct 2509 (SAIA)",
           "reasoning": false,
-          "input": [
-            "text"
-          ],
+          "attachment": false,
           "limit": {
             "context": 65000,
             "output": 8192
@@ -52,9 +50,7 @@
         "deepseek-v4-flash-0731": {
           "name": "DeepSeek V4 Flash 0731 (SAIA)",
           "reasoning": true,
-          "input": [
-            "text"
-          ],
+          "attachment": false,
           "limit": {
             "context": 1000000,
             "output": 32768
@@ -72,9 +68,7 @@
         "devstral-2-123b-instruct-2512": {
           "name": "Devstral 2 123B Instruct 2512 (SAIA)",
           "reasoning": false,
-          "input": [
-            "text"
-          ],
+          "attachment": false,
           "limit": {
             "context": 256000,
             "output": 16384
@@ -88,10 +82,7 @@
         "gemma-4-31b-it": {
           "name": "Gemma 4 31B Instruct (SAIA)",
           "reasoning": false,
-          "input": [
-            "text",
-            "image"
-          ],
+          "attachment": true,
           "limit": {
             "context": 256000,
             "output": 8192
@@ -105,11 +96,7 @@
         "glm-5.3-flash": {
           "name": "GLM 5.3 Flash (SAIA)",
           "reasoning": true,
-          "input": [
-            "text",
-            "image",
-            "video"
-          ],
+          "attachment": true,
           "limit": {
             "context": 1000000,
             "output": 32768
@@ -127,9 +114,7 @@
         "meta-llama-3.1-8b-instruct": {
           "name": "Llama 3.1 8B Instruct (SAIA)",
           "reasoning": false,
-          "input": [
-            "text"
-          ],
+          "attachment": false,
           "limit": {
             "context": 128000,
             "output": 4096
@@ -143,9 +128,7 @@
         "mistral-medium-3.5-128b": {
           "name": "Mistral Medium 3.5 128B (SAIA)",
           "reasoning": false,
-          "input": [
-            "text"
-          ],
+          "attachment": false,
           "limit": {
             "context": 256000,
             "output": 8192
@@ -159,9 +142,7 @@
         "openai-gpt-oss-120b": {
           "name": "GPT OSS 120B (SAIA)",
           "reasoning": true,
-          "input": [
-            "text"
-          ],
+          "attachment": false,
           "limit": {
             "context": 128000,
             "output": 8192
@@ -175,9 +156,7 @@
         "qwen3-30b-a3b-instruct-2507": {
           "name": "Qwen 3 30B A3B Instruct 2507 (SAIA)",
           "reasoning": false,
-          "input": [
-            "text"
-          ],
+          "attachment": false,
           "limit": {
             "context": 256000,
             "output": 16384
@@ -192,13 +171,38 @@
             }
           }
         },
+        "qwen3-coder-next": {
+          "name": "Qwen 3 Coder Next (SAIA)",
+          "reasoning": false,
+          "attachment": false,
+          "limit": {
+            "context": 256000,
+            "output": 16384
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.015,
+            "estimated_latency": "fast",
+            "category": "coder"
+          }
+        },
+        "qwen3-omni-30b-a3b-instruct": {
+          "name": "Qwen 3 Omni 30B A3B Instruct (SAIA)",
+          "reasoning": false,
+          "attachment": true,
+          "limit": {
+            "context": 256000,
+            "output": 4096
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.018,
+            "estimated_latency": "moderate",
+            "category": "vision"
+          }
+        },
         "qwen3.5-397b-a17b": {
           "name": "Qwen 3.5 397B A17B (SAIA)",
           "reasoning": true,
-          "input": [
-            "text",
-            "image"
-          ],
+          "attachment": true,
           "limit": {
             "context": 256000,
             "output": 32768
@@ -216,10 +220,7 @@
         "qwen3.6-35b-a3b": {
           "name": "Qwen 3.6 35B A3B (SAIA)",
           "reasoning": true,
-          "input": [
-            "text",
-            "image"
-          ],
+          "attachment": true,
           "limit": {
             "context": 262000,
             "output": 16384
@@ -237,9 +238,7 @@
         "qwen3.8-27b": {
           "name": "Qwen 3.8 27B (SAIA)",
           "reasoning": true,
-          "input": [
-            "text"
-          ],
+          "attachment": false,
           "limit": {
             "context": 262000,
             "output": 32768
@@ -254,46 +253,11 @@
             }
           }
         },
-        "qwen3-coder-next": {
-          "name": "Qwen 3 Coder Next (SAIA)",
-          "reasoning": false,
-          "input": [
-            "text"
-          ],
-          "limit": {
-            "context": 256000,
-            "output": 16384
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.015,
-            "estimated_latency": "fast",
-            "category": "coder"
-          }
-        },
-        "qwen3-omni-30b-a3b-instruct": {
-          "name": "Qwen 3 Omni 30B A3B Instruct (SAIA)",
-          "reasoning": false,
-          "input": [
-            "text",
-            "image",
-            "audio"
-          ],
-          "limit": {
-            "context": 256000,
-            "output": 4096
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.018,
-            "estimated_latency": "moderate",
-            "category": "vision"
-          }
-        },
         "best-for-coding": {
           "name": "best-for-coding → qwen3-coder-next",
           "reasoning": false,
-          "input": [
-            "text"
-          ],
+          "id": "qwen3-coder-next",
+          "attachment": false,
           "limit": {
             "context": 256000,
             "output": 16384
@@ -308,10 +272,8 @@
         "best-for-reasoning": {
           "name": "best-for-reasoning → qwen3.5-397b-a17b",
           "reasoning": true,
-          "input": [
-            "text",
-            "image"
-          ],
+          "id": "qwen3.5-397b-a17b",
+          "attachment": true,
           "limit": {
             "context": 256000,
             "output": 32768
@@ -330,10 +292,8 @@
         "best-quality": {
           "name": "best-quality → qwen3.5-397b-a17b",
           "reasoning": true,
-          "input": [
-            "text",
-            "image"
-          ],
+          "id": "qwen3.5-397b-a17b",
+          "attachment": true,
           "limit": {
             "context": 256000,
             "output": 32768
@@ -352,9 +312,8 @@
         "best-for-vision": {
           "name": "best-for-vision → qwen3.8-27b",
           "reasoning": true,
-          "input": [
-            "text"
-          ],
+          "id": "qwen3.8-27b",
+          "attachment": false,
           "limit": {
             "context": 262000,
             "output": 32768
@@ -373,11 +332,8 @@
         "best-for-agentic": {
           "name": "best-for-agentic → glm-5.3-flash",
           "reasoning": true,
-          "input": [
-            "text",
-            "image",
-            "video"
-          ],
+          "id": "glm-5.3-flash",
+          "attachment": true,
           "limit": {
             "context": 1000000,
             "output": 32768
@@ -396,9 +352,8 @@
         "fastest": {
           "name": "fastest → meta-llama-3.1-8b-instruct",
           "reasoning": false,
-          "input": [
-            "text"
-          ],
+          "id": "meta-llama-3.1-8b-instruct",
+          "attachment": false,
           "limit": {
             "context": 128000,
             "output": 4096
@@ -413,9 +368,8 @@
         "fastest-reasoning": {
           "name": "fastest-reasoning → qwen3.8-27b",
           "reasoning": true,
-          "input": [
-            "text"
-          ],
+          "id": "qwen3.8-27b",
+          "attachment": false,
           "limit": {
             "context": 262000,
             "output": 32768
@@ -434,9 +388,8 @@
         "budget": {
           "name": "budget → deepseek-v4-flash-0731",
           "reasoning": true,
-          "input": [
-            "text"
-          ],
+          "id": "deepseek-v4-flash-0731",
+          "attachment": false,
           "limit": {
             "context": 1000000,
             "output": 32768

@@ -111,7 +111,7 @@
             }
           }
         },
-        "can_reason": {
+        "reasoning": {
           "type": "boolean",
           "description": "Whether this model supports chain-of-thought reasoning"
         },
@@ -119,9 +119,9 @@
           "type": "boolean",
           "description": "Whether this model supports image/file attachment"
         },
-        "alias": {
-          "type": "boolean",
-          "description": "Whether this is a model group alias (not a real model)"
+        "id": {
+          "type": "string",
+          "description": "Alias entries declare the upstream model id they call; without it OpenCode \nsends the alias key to SAIA and gets 404 Model Not Found"
         },
         "metadata": {
           "type": "object",

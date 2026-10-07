@@ -1,4 +1,5 @@
-import { buildSaiaModels } from "./saia-model-metadata.js"
+import { DEFAULT_SAIA_MODEL, buildSaiaModels } from "./saia-model-metadata.js"
+import { isSaiaAlias } from "./saia-aliases.mjs"
 
 export const SAIA_BASE_URL = "https://chat-ai.academiccloud.de/v1"
 export const SAIA_API_KEY_PLACEHOLDER = "{env:SAIA_API_KEY}"
@@ -120,7 +121,12 @@ export function decorateSaiaConfig(config, {
     models: retainedModels,
   }
 
-  const firstAvailable = modelIDs.includes("glm-5.3-flash") ? "glm-5.3-flash" : modelIDs[0]
+  // Aliases are selectable but must never be *chosen* as the default: the
+  // documented default is a real model id, and an alias only adds indirection.
+  const defaultCandidates = modelIDs.filter((id) => !isSaiaAlias(id))
+  const firstAvailable = defaultCandidates.includes(DEFAULT_SAIA_MODEL)
+    ? DEFAULT_SAIA_MODEL
+    : defaultCandidates[0]
   const selected = preferredModel && modelIDs.includes(preferredModel) ? preferredModel : firstAvailable
   const current = config.model
   const currentIsUnavailableSaia =

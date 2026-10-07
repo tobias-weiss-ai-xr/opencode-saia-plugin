@@ -4,6 +4,7 @@ export const SAIA_RUNTIME_FILES = Object.freeze([
   "install-runtime.mjs",
   "install-tui-config.mjs",
   "runtime-manifest.mjs",
+  "saia-aliases.mjs",
   "saia-api-key.mjs",
   "saia-config.mjs",
   "saia-limits-server.js",

@@ -13,6 +13,8 @@
   "files": [
     "src/",
     "schema/",
+    "scripts/",
+    "data/",
     ".opencode/",
     "install.sh",
     "install.ps1",

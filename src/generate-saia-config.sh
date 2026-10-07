@@ -8,6 +8,20 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MASTER_CONFIG="$SCRIPT_DIR/opencode-saia.json"
 
+# Facts (context window, reasoning support, modalities, display name) are
+# generated into data/saia-models.json by scripts/collect-saia-model-info.mjs.
+# Prefer them over the hand-maintained tables below: those tables went stale and
+# advertised fields OpenCode ignores (`input`, and a `can_reason` spelling of the
+                # reasoning flag), which silently
+# disabled vision and reasoning instead of failing loudly.
+FACTS_FILE="$SCRIPT_DIR/../data/saia-models.json"
+
+fact_for() {
+    local id="$1" query="$2"
+    [[ -f "$FACTS_FILE" ]] || { echo "null"; return 0; }
+    jq -r --arg id "$id" "first(.models[] | select(.id == \$id)) | $query" "$FACTS_FILE" 2>/dev/null || echo "null"
+}
+
 # Parse flags
 INCREMENTAL=false
 while [[ $# -gt 0 ]]; do
@@ -160,9 +174,6 @@ categorize() {
         *vl-*|*vision*|internvl*)
             echo "vision"
             ;;
-        medgemma*)
-            echo "medical"
-            ;;
         teuken*|sauerkraut*)
             echo "research"
             ;;
@@ -204,7 +215,6 @@ get_estimated_latency_ms() {
         *27b*|apertus*|deepseek-v4-flash*) echo "moderate" ;; # ~150ms
         *31b*|*32b*)              echo "moderate" ;; # ~180ms
         *35b-a3b*|*30b*|*128b*)    echo "moderate" ;; # ~200ms
-        qwen3.5-122b*)            echo "slow" ;;    # ~300ms (MoE routing)
         qwen3-coder-next)         echo "fast" ;;    # optimized for coding
         glm-5.3-flash)                  echo "fast" ;;    # optimized for agentic use
         *70b*|*120b*)             echo "slow" ;;    # ~350ms
@@ -222,7 +232,6 @@ get_recommended_for() {
         glm-5.3-flash|devstral*|mistral-medium*) echo "agentic-coding,tool-use,architecture" ;;
         medical*)                echo "medical-qa,healthcare,biomedical" ;;
         qwen3.5-397b*)           echo "complex-reasoning,high-quality-writing" ;;
-        qwen3.5-122b*)           echo "balanced-response,fast-reasoning" ;;
         *8b*)                    echo "quick-edits,summarization,cost-optimization" ;;
         *70b*|*120b*)            echo "large-context,document-analysis,complex-tasks" ;;
         *)                       echo "general-purpose,chat,daily-tasks" ;;
@@ -345,7 +354,12 @@ describe() {
 }
 
 can_reason() {
-    local id="$1"
+    local id="$1" fact
+    fact=$(fact_for "$id" '.reasoning.supported == true | tostring')
+    if [[ "$fact" == "true" || "$fact" == "false" ]]; then
+        echo "$fact"
+        return 0
+    fi
     case "$id" in
         *thinking*|*r1*|qwen3.5-397b-a17b|qwen3-30b-a3b-instruct-2507)
             echo "true"
@@ -357,7 +371,12 @@ can_reason() {
 }
 
 get_context_window() {
-    local id="$1"
+    local id="$1" fact
+    fact=$(fact_for "$id" '.context_window.tokens | tostring')
+    if [[ "$fact" =~ ^[0-9]+$ ]]; then
+        echo "$fact"
+        return 0
+    fi
     case "$id" in
         qwen3.5-397b-a17b|qwen3.6-35b-a3b|glm-5.3-flash|meta-llama-3.1-8b-instruct|apertus-70b-instruct-2509|devstral-2-123b-instruct-2512|openai-gpt-oss-120b|mistral-medium-3.5-128b|deepseek-v4-flash-0731)
             echo "128000"
@@ -375,9 +394,14 @@ get_context_window() {
 }
 
 supports_attachment() {
-    local id="$1"
+    local id="$1" fact
+    fact=$(fact_for "$id" '(.input // ["text"]) | map(select(. != "text")) | length > 0 | tostring')
+    if [[ "$fact" == "true" || "$fact" == "false" ]]; then
+        echo "$fact"
+        return 0
+    fi
     case "$id" in
-        qwen3.6-35b-a3b|qwen3-omni-30b-a3b-instruct|gemma-4-31b-it|qwen3.5-397b-a17b)
+        qwen3.6-35b-a3b|qwen3-omni-30b-a3b-instruct|gemma-4-31b-it|qwen3.5-397b-a17b|glm-5.3-flash)
             echo "true"
             ;;
         *)
@@ -496,7 +520,7 @@ echo "$MODELS_JSON" | jq -r '.data[].id' | sort | while read -r model_id; do
 
     fields="\"name\": \"$desc\""
     fields="$fields, \"options\": {\"enable-tools\": true, \"enable-auto-tool-choice\": true, \"tool-call-parser\": \"openai\"}"
-    [[ "$reason_flag" == "true" ]] && fields="$fields, \"can_reason\": true"
+    [[ "$reason_flag" == "true" ]] && fields="$fields, \"reasoning\": true"
     [[ "$attach_flag" == "true" ]] && fields="$fields, \"attachment\": true"
     fields="$fields, \"limit\": {\"context\": $ctx, \"output\": $out}"
     fields="$fields, \"metadata\": {\"cost_per_1k_tokens\": $cost, \"estimated_latency\": \"$latency\", \"recommended_for\": [$(echo "$recommended" | sed 's/,/","/g' | sed 's/^/"/;s/$/"/')] }"
@@ -504,28 +528,40 @@ echo "$MODELS_JSON" | jq -r '.data[].id' | sort | while read -r model_id; do
     printf '        "%s": {%s}' "$model_id" "$fields" >> "$MASTER_CONFIG"
 done
 
-# Add model group aliases for easy discovery
-ALIASES=(
-    "best-for-coding:qwen3-coder-next"
-    "best-for-reasoning:qwen3.5-397b-a17b"
-    "best-for-vision:qwen3.6-35b-a3b"
-    "best-for-agentic:glm-5.3-flash"
-    "best-quality:qwen3.5-397b-a17b"
-    "fastest:meta-llama-3.1-8b-instruct"
-    "fastest-reasoning:deepseek-v4-flash-0731"
-    "budget:deepseek-v4-flash-0731"
-)
+# Model aliases. Read from src/saia-aliases.mjs — the same map the plugin and
+# scripts/sync-saia-models.sh use — so every installation path agrees on what
+# each shortcut means.
+ALIASES=()
+if command -v node >/dev/null 2>&1; then
+    while IFS= read -r alias_row; do
+        [ -n "$alias_row" ] && ALIASES+=("$alias_row")
+    done < <(node -e "import('$SCRIPT_DIR/saia-aliases.mjs').then((m) => console.log(m.saiaAliasRows().join('\\n')))" 2>/dev/null)
+fi
 
-for alias_entry in "${ALIASES[@]}"; do
-    alias_name="${alias_entry%%:*}"
-    alias_target="${alias_entry#*:}"
+for alias_row in "${ALIASES[@]}"; do
+    alias_name="${alias_row%%|*}"
+    alias_target="${alias_row#*|}"
 
-    # Only include alias if the target model exists in current profile
+    # Only include the alias when its target exists in the current profile.
     if echo "$MODELS_JSON" | jq -r '.data[].id' | grep -qx "$alias_target"; then
         if include_in_profile "$alias_target" "$PROFILE_CONFIG" 2>/dev/null; then
+            reason_flag=$(can_reason "$alias_target")
+            attach_flag=$(supports_attachment "$alias_target")
+            ctx=$(get_context_window "$alias_target")
+            out=$(get_output_window "$alias_target")
+
             echo "," >> "$MASTER_CONFIG"
-            alias_desc="Alias for $alias_target"
-            printf '        "%s": {"name": "%s", "alias": true, "options": {"enable-tools": true, "enable-auto-tool-choice": true, "tool-call-parser": "openai"}}' "$alias_name" "$alias_desc" >> "$MASTER_CONFIG"
+            # `id` is the point of an alias: OpenCode sends the model key unless the
+            # entry overrides it, so without `id` SAIA is asked for "best-for-coding"
+            # and answers 404 Model Not Found. Reasoning, attachment and limits are
+            # inherited from the target so a shortcut never advertises a model other
+            # than the one it will actually call.
+            fields="\"id\": \"$alias_target\", \"name\": \"$alias_name → $alias_target\""
+            fields="$fields, \"options\": {\"enable-tools\": true, \"enable-auto-tool-choice\": true, \"tool-call-parser\": \"openai\"}"
+            [[ "$reason_flag" == "true" ]] && fields="$fields, \"reasoning\": true"
+            [[ "$attach_flag" == "true" ]] && fields="$fields, \"attachment\": true"
+            fields="$fields, \"limit\": {\"context\": $ctx, \"output\": $out}"
+            printf '        \"%s\": {%s}' "$alias_name" "$fields" >> "$MASTER_CONFIG"
         fi
     fi
 done

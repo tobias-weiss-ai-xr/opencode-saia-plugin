@@ -98,16 +98,18 @@ taste_for() {
 }
 
 # Aliases
-ALIASES=(
-    "best-for-coding|qwen3-coder-next"
-    "best-for-reasoning|qwen3.5-397b-a17b"
-    "best-quality|qwen3.5-397b-a17b"
-    "best-for-vision|qwen3.8-27b"
-    "best-for-agentic|glm-5.3-flash"
-    "fastest|meta-llama-3.1-8b-instruct"
-    "fastest-reasoning|qwen3.8-27b"
-    "budget|deepseek-v4-flash-0731"
-)
+#
+# Read from src/saia-aliases.mjs — the same map the runtime plugin uses — so the
+# checked-in config and the plugin can never promise different shortcuts.
+ALIASES=()
+if command -v node >/dev/null 2>&1; then
+    while IFS= read -r alias_row; do
+        [ -n "$alias_row" ] && ALIASES+=("$alias_row")
+    done < <(node -e "import('$PLUGIN_DIR/src/saia-aliases.mjs').then((m) => console.log(m.saiaAliasRows().join('\\n')))" 2>/dev/null)
+fi
+if [ "${#ALIASES[@]}" -eq 0 ]; then
+    print_warn "Could not read the alias map from src/saia-aliases.mjs (is node available?)"
+fi
 
 # Categorize model based on ID
 categorize() {
@@ -169,12 +171,16 @@ echo "$FINAL_MODELS" | while read -r model_id; do
     
     # Format input types as JSON array
     input_json=$(echo "$input_types" | sed 's/,/", "/g' | sed 's/^/["/' | sed 's/$/"]/')
-    
+    # OpenCode reads `attachment` (boolean) to decide whether a model can take
+    # images/audio/video; an `input` array is silently ignored, which is why vision
+    # models looked text-only. See data/saia-models.json for the modalities.
+    attachment=$(jq -n --arg types "$input_types" '$types | split(",") | map(select(. != "" and . != "text")) | length > 0')
+
     # Build model config
     model_config=$(jq -n \
         --arg name "$description" \
         --argjson reasoning "$reasoning" \
-        --argjson input "$input_json" \
+        --argjson attachment "$attachment" \
         --argjson context "$context" \
         --argjson max_tokens "$max_tokens" \
         --argjson cost "$cost" \
@@ -184,7 +190,7 @@ echo "$FINAL_MODELS" | while read -r model_id; do
         '{
             name: $name,
             reasoning: $reasoning,
-            input: $input,
+            attachment: $attachment,
             limit: { context: $context, output: $max_tokens },
             metadata: ({
                 cost_per_1k_tokens: $cost,
@@ -215,13 +221,15 @@ for alias_row in "${ALIASES[@]}"; do
             max_tokens="$context"
         fi
         category=$(categorize "$target")
+        attachment=$(jq -n --arg types "$input_types" '$types | split(",") | map(select(. != "" and . != "text")) | length > 0')
         
-        input_json=$(echo "$input_types" | sed 's/,/", "/g' | sed 's/^/["/' | sed 's/$/"]/')
-        
+        # `id` is the point of an alias: OpenCode asks for the model key unless the
+        # entry overrides it, so without `id` SAIA is asked for "best-for-coding" and
+        # answers `404 Model Not Found`.
         alias_config=$(jq -n \
             --arg name "$alias → $target" \
             --argjson reasoning "$reasoning" \
-            --argjson input "$input_json" \
+            --argjson attachment "$attachment" \
             --argjson context "$context" \
             --argjson max_tokens "$max_tokens" \
             --argjson cost "$cost" \
@@ -232,7 +240,8 @@ for alias_row in "${ALIASES[@]}"; do
             '{
                 name: $name,
                 reasoning: $reasoning,
-                input: $input,
+                id: $target,
+                attachment: $attachment,
                 limit: { context: $context, output: $max_tokens },
                 metadata: ({
                     cost_per_1k_tokens: $cost,

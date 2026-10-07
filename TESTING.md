@@ -39,6 +39,7 @@ npm run validate            # bash src/validate-config.sh opencode.json  (actual
 | `saia-facts-collector.test.mjs` | Collector parsing/matching/merge logic (US-C1–C5) |
 | `saia-facts-invariants.test.mjs` | Committed facts + reasoning-map contract (US-F1–F3) |
 | `saia-config-drift.test.mjs` | Generated config vs. collected facts (US-D1–D5) |
+| `saia-wire-contract.test.mjs` | Wire-level surface contract (US-W1–W5) |
 
 ---
 
@@ -270,6 +271,35 @@ npm run validate            # bash src/validate-config.sh opencode.json  (actual
 - **Test:** `saia-hygiene.test.mjs` → "shell entry points parse".
 
 ---
+
+## Epic SAIA-WIRE — what OpenCode sends to SAIA is what SAIA serves
+
+> As a user I want aliases to resolve and models to advertise what they really
+> do, so a shortcut never hides a 404 and vision/reasoning claims are real.
+
+### US-W1 — Every alias declares the upstream model id it calls
+- **Test:** `saia-wire-contract.test.mjs` → "every alias declares the upstream
+  model id" (each alias entry carries `id: <target>`, and inherits the target's
+  limits, so OpenCode never asks SAIA for `best-for-coding`).
+
+### US-W2 — One alias map is shared everywhere
+- **Test:** `saia-wire-contract.test.mjs` → "the plugin, the generated config
+  and the sync script share one alias map" (`src/saia-aliases.mjs` is read by
+  the runtime plugin, `scripts/sync-saia-models.sh` and
+  `src/generate-saia-config.sh`).
+
+### US-W3 — No surface emits a field OpenCode ignores
+- **Test:** `saia-wire-contract.test.mjs` → "no surface emits a field OpenCode
+  ignores" (`input`, `can_reason` are gone; `attachment`/`reasoning` are
+  boolean and explicit).
+
+### US-W4 — The README table mirrors the shipped config
+- **Test:** `saia-wire-contract.test.mjs` → "the README table mirrors the
+  shipped config" (context in decimal K, output limits in binary K).
+
+### US-W5 — Shipped code names no retired model
+- **Test:** `saia-wire-contract.test.mjs` → "shipped code names no retired
+  model" (a fresh install can never be recommended a 404).
 
 ## Epic SAIA-DOCS — the documentation can never lag the catalog
 

@@ -263,9 +263,11 @@ export async function getRecommendedModel(availableModels: string[]): Promise<st
     return prefs.favoriteModel
   }
 
-  // Fallback: pick glm-4.7 if available, else first model
-  if (availableModels.includes("glm-4.7")) {
-    return "glm-4.7"
+  // Fallback: pick the documented default model when it is available, else the
+  // first model. The default must be a live model id — earlier this named a
+  // retired model and a fresh install got recommended a 404.
+  if (availableModels.includes("deepseek-v4-flash-0731")) {
+    return "deepseek-v4-flash-0731"
   }
 
   return availableModels[0] || "unknown"

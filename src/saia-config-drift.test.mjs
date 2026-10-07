@@ -41,7 +41,12 @@ test("US-D1: every live model is configured with its docs-verified context windo
     assert.ok(entry, `${model.id}: live model missing from opencode.json`)
     assert.equal(entry.limit.context, model.context_window.tokens, `${model.id}: context drifted from docs`)
     assert.notEqual(entry.limit.context, 131_072, `${model.id}: suspicious flat 131072 context`)
-    assert.deepEqual(entry.input, model.input, `${model.id}: input modalities drifted from the live API`)
+    assert.equal(
+      entry.attachment === true,
+      model.input.some((modality) => modality !== "text"),
+      `${model.id}: attachment drifted from the live modalities`,
+    )
+    assert.equal(entry.input, undefined, `${model.id}: config still emits the ignored input array`)
     assert.ok(entry.name.endsWith("(SAIA)"), `${model.id}: display name lost its provider tag`)
   }
 })
@@ -52,6 +57,11 @@ test("US-D2: every alias resolves to a live model and inherits its limits", () =
     const targetId = alias.metadata?.alias_of
     assert.ok(targetId, `${aliasId}: alias without alias_of metadata`)
     assert.ok(factById.has(targetId), `${aliasId}: alias points at non-live model ${targetId}`)
+    assert.equal(
+      alias.id,
+      targetId,
+      `${aliasId}: missing id=${targetId} — OpenCode sends the alias upstream and SAIA answers 404`,
+    )
     const target = configured[targetId]
     assert.equal(alias.limit.context, target.limit.context, `${aliasId}: context mismatch with target`)
     assert.equal(alias.reasoning, target.reasoning, `${aliasId}: reasoning mismatch with target`)

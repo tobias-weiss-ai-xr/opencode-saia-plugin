@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-07T04:29:00.491Z",
+  "generated_at": "2026-10-07T07:07:58.606Z",
   "sources": {
     "live_api": "https://chat-ai.academiccloud.de/v1/models",
     "docs": "https://docs.hpc.gwdg.de/services/ai-services/chat-ai/models/index.html",
@@ -9,108 +9,14 @@
   "live": {
     "models": [
       {
-        "demand": 0,
-        "owned_by": "chat-ai",
+        "demand": 4,
         "id": "apertus-70b-instruct-2509",
         "name": "Apertus 70B Instruct 2509",
-        "input": [
-          "text"
-        ],
-        "created": 1791347340,
-        "object": "model",
-        "status": "ready",
-        "output": [
-          "text"
-        ]
-      },
-      {
-        "demand": 0,
         "owned_by": "chat-ai",
-        "id": "devstral-2-123b-instruct-2512",
-        "name": "Devstral 2 123B Instruct 2512",
         "input": [
           "text"
         ],
-        "created": 1791347340,
-        "object": "model",
-        "status": "ready",
-        "output": [
-          "text"
-        ]
-      },
-      {
-        "demand": 0,
-        "owned_by": "chat-ai",
-        "id": "qwen3.8-27b",
-        "name": "Qwen 3.8 27B",
-        "input": [
-          "text"
-        ],
-        "created": 1791347340,
-        "object": "model",
-        "status": "ready",
-        "output": [
-          "text"
-        ]
-      },
-      {
-        "demand": 0,
-        "owned_by": "chat-ai",
-        "id": "deepseek-v4-flash-0731",
-        "name": "DeepSeek V4 Flash 0731",
-        "input": [
-          "text"
-        ],
-        "created": 1791347340,
-        "object": "model",
-        "status": "ready",
-        "output": [
-          "text"
-        ]
-      },
-      {
-        "demand": 0,
-        "owned_by": "chat-ai",
-        "id": "glm-5.3-flash",
-        "name": "GLM 5.3 Flash",
-        "input": [
-          "text",
-          "image",
-          "video"
-        ],
-        "created": 1791347340,
-        "object": "model",
-        "status": "ready",
-        "output": [
-          "text"
-        ]
-      },
-      {
-        "demand": 0,
-        "owned_by": "chat-ai",
-        "id": "qwen3-coder-next",
-        "name": "Qwen 3 Coder Next",
-        "input": [
-          "text"
-        ],
-        "created": 1791347340,
-        "object": "model",
-        "status": "ready",
-        "output": [
-          "text"
-        ]
-      },
-      {
-        "demand": 0,
-        "owned_by": "chat-ai",
-        "id": "qwen3-omni-30b-a3b-instruct",
-        "name": "Qwen 3 Omni 30B A3B Instruct",
-        "input": [
-          "text",
-          "image",
-          "audio"
-        ],
-        "created": 1791347340,
+        "created": 1791356878,
         "object": "model",
         "status": "ready",
         "output": [
@@ -119,13 +25,60 @@
       },
       {
         "demand": 1,
+        "id": "devstral-2-123b-instruct-2512",
+        "name": "Devstral 2 123B Instruct 2512",
         "owned_by": "chat-ai",
-        "id": "mistral-medium-3.5-128b",
-        "name": "Mistral Medium 3.5 128B",
         "input": [
           "text"
         ],
-        "created": 1791347340,
+        "created": 1791356878,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 3,
+        "id": "qwen3.8-27b",
+        "name": "Qwen 3.8 27B",
+        "owned_by": "chat-ai",
+        "input": [
+          "text"
+        ],
+        "created": 1791356878,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 1,
+        "id": "deepseek-v4-flash-0731",
+        "name": "DeepSeek V4 Flash 0731",
+        "owned_by": "chat-ai",
+        "input": [
+          "text"
+        ],
+        "created": 1791356878,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 1,
+        "id": "glm-5.3-flash",
+        "name": "GLM 5.3 Flash",
+        "owned_by": "chat-ai",
+        "input": [
+          "text",
+          "image",
+          "video"
+        ],
+        "created": 1791356878,
         "object": "model",
         "status": "ready",
         "output": [
@@ -134,14 +87,61 @@
       },
       {
         "demand": 0,
+        "id": "qwen3-coder-next",
+        "name": "Qwen 3 Coder Next",
         "owned_by": "chat-ai",
+        "input": [
+          "text"
+        ],
+        "created": 1791356878,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 0,
+        "id": "qwen3-omni-30b-a3b-instruct",
+        "name": "Qwen 3 Omni 30B A3B Instruct",
+        "owned_by": "chat-ai",
+        "input": [
+          "text",
+          "image",
+          "audio"
+        ],
+        "created": 1791356878,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 8,
+        "id": "mistral-medium-3.5-128b",
+        "name": "Mistral Medium 3.5 128B",
+        "owned_by": "chat-ai",
+        "input": [
+          "text"
+        ],
+        "created": 1791356878,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 2,
         "id": "qwen3.5-397b-a17b",
         "name": "Qwen 3.5 397B A17B",
+        "owned_by": "chat-ai",
         "input": [
           "text",
           "image"
         ],
-        "created": 1791347340,
+        "created": 1791356878,
         "object": "model",
         "status": "ready",
         "output": [
@@ -150,15 +150,15 @@
         ]
       },
       {
-        "demand": 0,
-        "owned_by": "chat-ai",
+        "demand": 1,
         "id": "gemma-4-31b-it",
         "name": "Gemma 4 31B Instruct",
+        "owned_by": "chat-ai",
         "input": [
           "text",
           "image"
         ],
-        "created": 1791347340,
+        "created": 1791356878,
         "object": "model",
         "status": "ready",
         "output": [
@@ -166,15 +166,15 @@
         ]
       },
       {
-        "demand": 0,
-        "owned_by": "chat-ai",
+        "demand": 2,
         "id": "qwen3.6-35b-a3b",
         "name": "Qwen 3.6 35B A3B",
+        "owned_by": "chat-ai",
         "input": [
           "text",
           "image"
         ],
-        "created": 1791347340,
+        "created": 1791356878,
         "object": "model",
         "status": "ready",
         "output": [
@@ -183,13 +183,13 @@
       },
       {
         "demand": 0,
-        "owned_by": "chat-ai",
         "id": "meta-llama-3.1-8b-instruct",
         "name": "Meta Llama 3.1 8B Instruct",
+        "owned_by": "chat-ai",
         "input": [
           "text"
         ],
-        "created": 1791347340,
+        "created": 1791356878,
         "object": "model",
         "status": "ready",
         "output": [
@@ -198,13 +198,13 @@
       },
       {
         "demand": 0,
-        "owned_by": "chat-ai",
         "id": "openai-gpt-oss-120b",
         "name": "OpenAI GPT OSS 120B",
+        "owned_by": "chat-ai",
         "input": [
           "text"
         ],
-        "created": 1791347340,
+        "created": 1791356878,
         "object": "model",
         "status": "ready",
         "output": [
@@ -213,13 +213,13 @@
       },
       {
         "demand": 0,
-        "owned_by": "chat-ai",
         "id": "qwen3-30b-a3b-instruct-2507",
         "name": "Qwen 3 30B A3B Instruct 2507",
+        "owned_by": "chat-ai",
         "input": [
           "text"
         ],
-        "created": 1791347340,
+        "created": 1791356878,
         "object": "model",
         "status": "ready",
         "output": [

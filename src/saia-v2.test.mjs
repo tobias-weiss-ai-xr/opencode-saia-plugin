@@ -10,6 +10,14 @@ import {
   v2ProviderPackage,
 } from "./saia-v2.mjs"
 
+const DEEPSEEK = {
+  id: "deepseek-v4-flash-0731",
+  name: "DeepSeek V4 Flash",
+  input: ["text"],
+  output: ["text"],
+  status: "ready",
+}
+
 const READY_MODELS = [
   { id: "glm-5.3-flash", name: "GLM 5.3 Flash", input: ["text"], output: ["text"], status: "ready" },
   {
@@ -37,7 +45,7 @@ test("maps SAIA API models onto v2 Model.Info", () => {
 
 test("overlays curated inventory and drops stale plugin-managed models", () => {
   const generated = decorateSaiaV2Provider({
-    models: [READY_MODELS[0]],
+    models: [READY_MODELS[0], DEEPSEEK],
     managedModels: {
       "glm-5.3-flash": saiaModelInfoFromApiModel(READY_MODELS[0]),
       stale: { ...saiaModelInfoFromApiModel({ id: "stale", name: "Stale" }) },
@@ -52,8 +60,17 @@ test("overlays curated inventory and drops stale plugin-managed models", () => {
 
   assert.deepEqual(
     generated.modelIDs,
-    ["custom-stale", "glm-5.3-flash", "my-alias"],
+    [
+      "best-for-agentic",
+      "budget",
+      "custom-stale",
+      "deepseek-v4-flash-0731",
+      "glm-5.3-flash",
+      "my-alias",
+    ],
   )
+  // An alias resolves to its target's model id on the wire.
+  assert.equal(generated.models.find((m) => m.id === "best-for-agentic").modelID, "glm-5.3-flash")
   assert.deepEqual(
     generated.models.find((model) => model.id === "glm-5.3-flash").limit,
     { context: 200000, output: 8192 },
@@ -221,7 +238,7 @@ test("v2 setup registers hooks, replaces the inventory, and injects the API key"
   assert.equal(harness.calls.modelsSet.providerID, "saia")
   assert.deepEqual(
     harness.calls.modelsSet.models.map((model) => model.id),
-    ["glm-5.3-flash", "qwen3.6-35b-a3b"],
+    ["best-for-agentic", "glm-5.3-flash", "qwen3.6-35b-a3b"],
   )
   assert.deepEqual(
     harness.calls.modelsSet.models.find((model) => model.id === "glm-5.3-flash").limit,
@@ -275,7 +292,7 @@ test("v2 setup falls back to editor.add when the provider is not configured", as
   assert.equal(harness.calls.modelsSet, undefined)
   assert.equal(harness.calls.added.info.id, "saia")
   assert.equal(harness.calls.added.info.settings.apiKey, "test-key")
-  assert.equal(harness.calls.added.models.length, 2)
+  assert.equal(harness.calls.added.models.length, 3)
   // Existing default stays untouched when it is still available.
   assert.equal(harness.calls.defaultSet, undefined)
 })

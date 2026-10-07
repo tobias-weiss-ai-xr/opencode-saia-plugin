@@ -188,24 +188,29 @@ Restart OpenCode after generating the config.
 
 | Model | Context | Output | Reasoning | Vision | Category |
 |---|---|---|---|---|---|
-| `saia/apertus-70b-instruct-2509` | 65K | 16K | — | — | general |
+| `saia/apertus-70b-instruct-2509` | 65K | 8K | — | — | general |
 | `saia/deepseek-v4-flash-0731` | 1M | 32K | ✅ | — | reasoning |
 | `saia/devstral-2-123b-instruct-2512` | 256K | 16K | — | — | agentic |
 | `saia/gemma-4-31b-it` | 256K | 8K | — | ✅ | vision |
 | `saia/glm-5.3-flash` | 1M | 32K | ✅ | ✅ | agentic |
-| `saia/meta-llama-3.1-8b-instruct` | 128K | 8K | — | — | general |
+| `saia/meta-llama-3.1-8b-instruct` | 128K | 4K | — | — | general |
 | `saia/mistral-medium-3.5-128b` | 256K | 8K | — | — | agentic |
 | `saia/openai-gpt-oss-120b` | 128K | 8K | ✅ | — | reasoning |
 | `saia/qwen3-30b-a3b-instruct-2507` | 256K | 16K | — | — | reasoning |
 | `saia/qwen3-coder-next` | 256K | 16K | — | — | coder |
-| `saia/qwen3-omni-30b-a3b-instruct` | 256K | 16K | — | ✅ | vision |
+| `saia/qwen3-omni-30b-a3b-instruct` | 256K | 4K | — | ✅ | vision |
 | `saia/qwen3.5-397b-a17b` | 256K | 32K | ✅ | ✅ | reasoning |
 | `saia/qwen3.6-35b-a3b` | 262K | 16K | ✅ | ✅ | reasoning |
-| `saia/qwen3.8-27b` | 262K | 16K | ✅ | — | reasoning |
+| `saia/qwen3.8-27b` | 262K | 32K | ✅ | — | reasoning |
 
 Default model: `saia/deepseek-v4-flash-0731` — 1M context, reasoning-capable.
 
 ### Model Aliases
+
+Every alias is a real model entry that declares `id: <target>`, so the shortcut
+is resolved before the request leaves OpenCode. Alias limits, reasoning and
+attachment capabilities are inherited from the target — a shortcut can never
+advertise a model other than the one it will actually call.
 
 | Alias | Points To | Use Case |
 |---|---|---|
