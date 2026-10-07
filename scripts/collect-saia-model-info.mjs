@@ -18,34 +18,25 @@
 //                previous run (docs are re-fetched)
 //     --strict   exit 1 when any live model lacks docs facts or reasoning info
 //
-// No dependencies — Node.js >= 18.
+// No dependencies — Node.js >= 18. The pure functions and buildCatalog() are
+// exported for the test suite; main() only runs when executed as a CLI.
 
 import { readFile, writeFile, mkdir } from "node:fs/promises"
 import { dirname, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
 import process from "node:process"
 
 const API_BASE = process.env.SAIA_API_URL?.replace(/\/+$/, "") ?? "https://chat-ai.academiccloud.de/v1"
 const DOCS_URL = "https://docs.hpc.gwdg.de/services/ai-services/chat-ai/models/index.html"
-
-const args = process.argv.slice(2)
-const outIndex = args.indexOf("--out")
-const outPath = resolve(args[outIndex + 1] ?? "data/saia-models.json")
-const offline = args.includes("--offline")
-const strict = args.includes("--strict")
 
 function warn(message) {
   console.warn(`[WARN] ${message}`)
 }
 
 async function fetchLiveModels() {
-  if (offline) return undefined
-  const apiKey = process.env.SAIA_API_KEY
-  if (!apiKey) {
-    warn("SAIA_API_KEY not set — falling back to the previous run's live facts (--offline)")
-    return undefined
-  }
+  if (!process.env.SAIA_API_KEY) return undefined
   const response = await fetch(`${API_BASE}/models`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers: { Authorization: `Bearer ${process.env.SAIA_API_KEY}` },
     signal: AbortSignal.timeout(15_000),
   })
   if (!response.ok) throw new Error(`live API returned ${response.status}`)
@@ -62,7 +53,7 @@ async function fetchDocs() {
 
 const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", rsquo: "’", ndash: "–", mdash: "—" }
 
-function decodeEntities(text) {
+export function decodeEntities(text) {
   return text.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity) => {
     if (entity.startsWith("#x") || entity.startsWith("#X")) return String.fromCodePoint(parseInt(entity.slice(2), 16))
     if (entity.startsWith("#")) return String.fromCodePoint(parseInt(entity.slice(1), 10))
@@ -81,7 +72,7 @@ function cellText(html) {
 // "65k" → 65000, "1M" → 1000000, "1.05M" → 1050000, "4096" → 4096.
 // Deliberately decimal: the docs table is the source of truth and writes
 // "256K"/"1M"; the raw display string is preserved next to the number.
-function parseContextWindow(display) {
+export function parseContextWindow(display) {
   const match = /^([\d.]+)\s*([kKmM])?$/.exec(display.replace(/,/g, ""))
   if (!match) return null
   const value = Number(match[1])
@@ -91,7 +82,7 @@ function parseContextWindow(display) {
 }
 
 // "temp=0.8, top_p=0.9" → {temperature: 0.8, top_p: 0.9}
-function parseRecommended(text) {
+export function parseRecommended(text) {
   const recommended = {}
   for (const [, key, value] of text.matchAll(/(temp(?:erature)?|top_p)\s*=\s*([\d.]+)/gi)) {
     const normalized = key.toLowerCase().startsWith("temp") ? "temperature" : "top_p"
@@ -100,7 +91,7 @@ function parseRecommended(text) {
   return Object.keys(recommended).length ? recommended : undefined
 }
 
-function parseDocsTables(html) {
+export function parseDocsTables(html) {
   const rows = []
   for (const table of html.matchAll(/<table>[\s\S]*?<\/table>/g)) {
     for (const row of table[0].matchAll(/<tr>([\s\S]*?)<\/tr>/g)) {
@@ -124,36 +115,31 @@ function parseDocsTables(html) {
   return rows
 }
 
-const normalize = (text) => text.toLowerCase().replace(/[^a-z0-9]/g, "")
+export const normalize = (text) => text.toLowerCase().replace(/[^a-z0-9]/g, "")
 
 // Docs display names sometimes carry an "Instruct" suffix the API id lacks
 // ("Gemma 4 31B Instruct" vs "gemma-4-31b-it").
-function nameAliases(name) {
+export function nameAliases(name) {
   const norm = normalize(name)
   const stripped = norm.replace(/instruct$/, "")
   return stripped && stripped !== norm && stripped.length >= 6 ? [norm, stripped] : [norm]
 }
 
-function matchDocsRow(id, docsRows) {
+export function matchDocsRow(id, docsRows) {
   const target = normalize(id)
   const candidates = docsRows.filter((row) => !row.external)
   const exact = candidates.find((row) => nameAliases(row.name).includes(target))
   if (exact) return exact
   return candidates.find((row) =>
-    nameAliases(row.name).some(
-      (alias) => alias.includes(target) || target.includes(alias),
-    ),
+    nameAliases(row.name).some((alias) => alias.includes(target) || target.includes(alias)),
   )
 }
 
-async function loadReasoningEntries(scriptDir) {
-  const raw = JSON.parse(await readFile(resolve(scriptDir, "reasoning-models.json"), "utf8"))
-  // Longest prefix wins so "qwen3.5-" is not shadowed by a shorter pattern.
-  return [...raw.entries].sort((a, b) => b.prefix.length - a.prefix.length)
-}
-
-function reasoningFor(id, entries) {
-  const entry = entries.find((entry) => id === entry.prefix || id.startsWith(entry.prefix))
+// Longest prefix wins so "qwen3.5-" is not shadowed by a shorter pattern.
+export function reasoningFor(id, entries) {
+  const entry = [...entries]
+    .sort((a, b) => b.prefix.length - a.prefix.length)
+    .find((entry) => id === entry.prefix || id.startsWith(entry.prefix))
   if (!entry) return { supported: null }
   const reasoning = { supported: entry.supported }
   for (const key of ["toggle", "effort", "note", "sources"]) {
@@ -162,33 +148,11 @@ function reasoningFor(id, entries) {
   return reasoning
 }
 
-async function main() {
-  const scriptDir = new URL(".", import.meta.url).pathname
+// Merge live API models with parsed docs rows and curated reasoning entries.
+// Pure: no network, no fs — the test suite drives this directly.
+export function buildCatalog({ liveModels, docsHtml = "", reasoningEntries = [] }) {
   const gaps = { api_without_docs: [], docs_without_api: [], reasoning_unknown: [] }
-
-  let liveModels
-  let previous
-  try {
-    previous = JSON.parse(await readFile(outPath, "utf8"))
-  } catch {
-    previous = undefined
-  }
-
-  liveModels = await fetchLiveModels()
-  if (!liveModels) {
-    liveModels = previous?.live?.models
-    if (!liveModels) throw new Error("no live model facts available (set SAIA_API_KEY or run online first)")
-  }
-
-  let docsRows
-  try {
-    docsRows = parseDocsTables(await fetchDocs())
-  } catch (error) {
-    docsRows = []
-    warn(`could not fetch/parse GWDG docs (${error.message}) — context windows will be missing`)
-  }
-
-  const reasoningEntries = await loadReasoningEntries(scriptDir)
+  const docsRows = docsHtml ? parseDocsTables(docsHtml) : []
 
   const models = []
   const usedDocsRows = new Set()
@@ -220,6 +184,48 @@ async function main() {
     gaps.docs_without_api.push(row.name)
   }
 
+  return { models, gaps }
+}
+
+async function loadReasoningEntries(scriptDir) {
+  const raw = JSON.parse(await readFile(resolve(scriptDir, "reasoning-models.json"), "utf8"))
+  return raw.entries
+}
+
+async function main() {
+  const args = process.argv.slice(2)
+  const outIndex = args.indexOf("--out")
+  const outPath = resolve(args[outIndex + 1] ?? "data/saia-models.json")
+  const offline = args.includes("--offline")
+  const strict = args.includes("--strict")
+  const scriptDir = new URL(".", import.meta.url).pathname
+
+  let previous
+  try {
+    previous = JSON.parse(await readFile(outPath, "utf8"))
+  } catch {
+    previous = undefined
+  }
+
+  let liveModels = offline ? undefined : await fetchLiveModels().catch((error) => {
+    warn(`live API unreachable (${error.message}) — falling back to the previous run`)
+    return undefined
+  })
+  if (!liveModels) {
+    liveModels = previous?.live?.models
+    if (!liveModels) throw new Error("no live model facts available (set SAIA_API_KEY or run online first)")
+  }
+
+  let docsHtml = ""
+  try {
+    docsHtml = await fetchDocs()
+  } catch (error) {
+    warn(`could not fetch GWDG docs (${error.message}) — context windows will be missing`)
+  }
+
+  const reasoningEntries = await loadReasoningEntries(scriptDir)
+  const { models, gaps } = buildCatalog({ liveModels, docsHtml, reasoningEntries })
+
   const catalog = {
     generated_at: new Date().toISOString(),
     sources: {
@@ -246,7 +252,10 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(`[ERROR] ${error.message}`)
-  process.exit(1)
-})
+const invokedAsCli = process.argv[1] && process.argv[1].endsWith("collect-saia-model-info.mjs")
+if (invokedAsCli) {
+  main().catch((error) => {
+    console.error(`[ERROR] ${error.message}`)
+    process.exit(1)
+  })
+}

@@ -36,6 +36,9 @@ npm run validate            # bash src/validate-config.sh opencode.json  (actual
 | `install-runtime.test.mjs` | `install-runtime.mjs` lifecycle script |
 | `install-tui-config.test.mjs` | `install-tui-config.mjs` TUI layout |
 | `set-saia-transport.test.mjs` | `set-saia-transport.mjs` switching script |
+| `saia-facts-collector.test.mjs` | Collector parsing/matching/merge logic (US-C1–C5) |
+| `saia-facts-invariants.test.mjs` | Committed facts + reasoning-map contract (US-F1–F3) |
+| `saia-config-drift.test.mjs` | Generated config vs. collected facts (US-D1–D5) |
 
 ---
 
@@ -143,3 +146,98 @@ npm run validate            # bash src/validate-config.sh opencode.json  (actual
 - **Then** `bash src/validate-config.sh opencode.json` validates the generated
   config against the schema and fails on missing/invalid fields.
 - **Tool:** `src/validate-config.sh` (run via `npm run validate`).
+
+---
+
+## Epic SAIA-FACTS — Auto-collected model facts are correct and complete
+
+> As a repo consumer I want `scripts/collect-saia-model-info.mjs` to turn the
+> live API, the GWDG docs table and the curated reasoning map into a clean,
+> unopinionated catalog — with every ambiguity reported as a gap instead of
+> guessed — so `data/saia-models.json` is trustworthy enough to curl and build
+> on.
+
+### US-C1 — Docs context displays parse to exact token counts
+- **Given** docs cells like "65k", "256K", "1M", "1.05M"
+- **When** `parseContextWindow` runs
+- **Then** they become 65000/256000/1000000/1050000 (decimal k/M), and garbage
+  stays `null` — never a guess.
+- **Test:** `saia-facts-collector.test.mjs` → "context window display values
+  parse to exact token counts".
+
+### US-C2 — Recommended sampling parses to vendor params
+- **Given** "temp=0.8, top_p=0.9" style cells
+- **Then** `parseRecommended` yields `{temperature, top_p}` and returns
+  `undefined` for dashes/prose.
+- **Test:** `saia-facts-collector.test.mjs` → "recommended sampling parses…".
+
+### US-C3 — Docs names match API ids (Instruct drift; external excluded)
+- **Given** "Gemma 4 31B Instruct" vs `gemma-4-31b-it`
+- **Then** `matchDocsRow` strips the trailing "Instruct" and matches, and
+  closed/external models are never matched.
+- **Test:** `saia-facts-collector.test.mjs` → "docs names match API ids…".
+
+### US-C4 — Reasoning entries resolve by longest prefix
+- **Given** overlapping prefixes (`qwen3-` false, `qwen3.5-` true)
+- **Then** `reasoningFor` picks the longest match; unknown ids report
+  `{supported: null}` for gap tracking.
+- **Test:** `saia-facts-collector.test.mjs` → "reasoning entries resolve by
+  longest prefix…".
+
+### US-C5 — The merge reports every gap honestly
+- **Given** a live model with no docs row, a docs row with no API model, and a
+  closed + an embeddings row
+- **Then** `buildCatalog` fills `api_without_docs`, `docs_without_api` (external
+  and embeddings excluded) and `reasoning_unknown`, and leaves missing facts
+  null rather than guessing.
+- **Test:** `saia-facts-collector.test.mjs` → "buildCatalog merges all three
+  sources and reports every gap honestly".
+
+### US-F1 — The committed facts file satisfies its contract
+- **Given** `data/saia-models.json`
+- **Then** ids are unique, every model accepts text, has a parsed context
+  window and a decided reasoning flag, and `gaps` is empty.
+- **Test:** `saia-facts-invariants.test.mjs` → "data/saia-models.json satisfies
+  the catalog contract".
+
+### US-F2 — The curated reasoning map covers every live model
+- **Given** `scripts/reasoning-models.json`
+- **Then** prefixes are unique, every live model resolves via longest prefix
+  exactly as recorded in the data file, and every supported entry cites vendor
+  sources.
+- **Test:** `saia-facts-invariants.test.mjs` → "the curated reasoning map covers
+  every live model exactly".
+
+### US-F3 — Supported models name their vendor API surface
+- **Given** any model with `reasoning.supported === true`
+- **Then** it carries a `toggle` or `effort` param so clients know what to send.
+- **Test:** `saia-facts-invariants.test.mjs` → "supported models name their
+  vendor API surface".
+
+---
+
+## Epic SAIA-DRIFT — The generated config never drifts from the facts
+
+> As an OpenCode user I want `opencode.json` to mirror `data/saia-models.json`
+> (contexts, reasoning, sampling, aliases) so the model picker shows reality —
+> the flat-131072 era must be structurally impossible to reintroduce.
+
+### US-D1 — Every live model configured with its docs-verified context
+- **Test:** `saia-config-drift.test.mjs` → "every live model is configured with
+  its docs-verified context window" (also rejects a flat 131072 regression).
+
+### US-D2 — Aliases point only at live models
+- **Test:** `saia-config-drift.test.mjs` → "every alias resolves to a live model
+  and inherits its limits".
+
+### US-D3 — Retired models stay gone
+- **Test:** `saia-config-drift.test.mjs` → "retired models stay gone after sync"
+  (glm-4.7, qwen3.8-2.4t-a95b, qwen3.5-122b-a10b, qwen3.6-27b, medgemma-27b-it).
+
+### US-D4 — The default model ships with its own config
+- **Test:** `saia-config-drift.test.mjs` → "the default model is installed by
+  this very config".
+
+### US-D5 — Reasoning flags and sampling mirror the facts
+- **Test:** `saia-config-drift.test.mjs` → "reasoning flags and recommended
+  sampling mirror the facts file".
