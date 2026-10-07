@@ -30,45 +30,53 @@
       },
       "models": {
         "apertus-70b-instruct-2509": {
-          "name": "Apertus 70B (SAIA)",
+          "name": "Apertus 70B Instruct 2509 (SAIA)",
           "reasoning": false,
           "input": [
             "text"
           ],
           "limit": {
-            "context": 131072,
+            "context": 65000,
             "output": 8192
           },
           "metadata": {
             "cost_per_1k_tokens": 0.025,
             "estimated_latency": "slow",
-            "category": "general"
+            "category": "general",
+            "recommended": {
+              "temperature": 0.8,
+              "top_p": 0.9
+            }
           }
         },
         "deepseek-v4-flash-0731": {
-          "name": "DeepSeek V4 Flash (SAIA)",
-          "reasoning": false,
+          "name": "DeepSeek V4 Flash 0731 (SAIA)",
+          "reasoning": true,
           "input": [
             "text"
           ],
           "limit": {
-            "context": 131072,
-            "output": 16384
+            "context": 1000000,
+            "output": 32768
           },
           "metadata": {
             "cost_per_1k_tokens": 0.008,
             "estimated_latency": "fast",
-            "category": "general"
+            "category": "general",
+            "recommended": {
+              "temperature": 1,
+              "top_p": 1
+            }
           }
         },
         "devstral-2-123b-instruct-2512": {
-          "name": "DevStral 2 123B (SAIA)",
+          "name": "Devstral 2 123B Instruct 2512 (SAIA)",
           "reasoning": false,
           "input": [
             "text"
           ],
           "limit": {
-            "context": 131072,
+            "context": 256000,
             "output": 16384
           },
           "metadata": {
@@ -78,14 +86,14 @@
           }
         },
         "gemma-4-31b-it": {
-          "name": "Gemma 4 31B (SAIA)",
+          "name": "Gemma 4 31B Instruct (SAIA)",
           "reasoning": false,
           "input": [
             "text",
             "image"
           ],
           "limit": {
-            "context": 131072,
+            "context": 256000,
             "output": 8192
           },
           "metadata": {
@@ -96,45 +104,34 @@
         },
         "glm-5.3-flash": {
           "name": "GLM 5.3 Flash (SAIA)",
-          "reasoning": false,
+          "reasoning": true,
           "input": [
-            "text"
+            "text",
+            "image",
+            "video"
           ],
           "limit": {
-            "context": 131072,
+            "context": 1000000,
             "output": 32768
           },
           "metadata": {
             "cost_per_1k_tokens": 0.015,
             "estimated_latency": "fast",
-            "category": "agentic"
-          }
-        },
-        "medgemma-27b-it": {
-          "name": "MedGemma 27B (SAIA)",
-          "reasoning": false,
-          "input": [
-            "text",
-            "image"
-          ],
-          "limit": {
-            "context": 32768,
-            "output": 4096
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.012,
-            "estimated_latency": "moderate",
-            "category": "medical"
+            "category": "agentic",
+            "recommended": {
+              "temperature": 1,
+              "top_p": 0.95
+            }
           }
         },
         "meta-llama-3.1-8b-instruct": {
-          "name": "Meta Llama 3.1 8B (SAIA)",
+          "name": "Llama 3.1 8B Instruct (SAIA)",
           "reasoning": false,
           "input": [
             "text"
           ],
           "limit": {
-            "context": 131072,
+            "context": 128000,
             "output": 4096
           },
           "metadata": {
@@ -150,7 +147,7 @@
             "text"
           ],
           "limit": {
-            "context": 131072,
+            "context": 256000,
             "output": 8192
           },
           "metadata": {
@@ -160,13 +157,13 @@
           }
         },
         "openai-gpt-oss-120b": {
-          "name": "GPT-OSS 120B (SAIA)",
-          "reasoning": false,
+          "name": "GPT OSS 120B (SAIA)",
+          "reasoning": true,
           "input": [
             "text"
           ],
           "limit": {
-            "context": 131072,
+            "context": 128000,
             "output": 8192
           },
           "metadata": {
@@ -176,86 +173,85 @@
           }
         },
         "qwen3-30b-a3b-instruct-2507": {
-          "name": "Qwen 3 30B (SAIA)",
-          "reasoning": true,
+          "name": "Qwen 3 30B A3B Instruct 2507 (SAIA)",
+          "reasoning": false,
           "input": [
             "text"
           ],
           "limit": {
-            "context": 131072,
+            "context": 256000,
             "output": 16384
           },
           "metadata": {
             "cost_per_1k_tokens": 0.018,
             "estimated_latency": "moderate",
-            "category": "reasoning"
-          }
-        },
-        "qwen3.5-122b-a10b": {
-          "name": "Qwen 3.5 122B (SAIA)",
-          "reasoning": true,
-          "input": [
-            "text",
-            "image"
-          ],
-          "limit": {
-            "context": 131072,
-            "output": 32768
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.075,
-            "estimated_latency": "slow",
-            "category": "reasoning"
+            "category": "general",
+            "recommended": {
+              "temperature": 0.6,
+              "top_p": 0.95
+            }
           }
         },
         "qwen3.5-397b-a17b": {
-          "name": "Qwen 3.5 397B (SAIA)",
+          "name": "Qwen 3.5 397B A17B (SAIA)",
           "reasoning": true,
           "input": [
             "text",
             "image"
           ],
           "limit": {
-            "context": 131072,
+            "context": 256000,
             "output": 32768
           },
           "metadata": {
             "cost_per_1k_tokens": 0.125,
             "estimated_latency": "very-slow",
-            "category": "reasoning"
-          }
-        },
-        "qwen3.6-27b": {
-          "name": "Qwen 3.6 27B (SAIA)",
-          "reasoning": false,
-          "input": [
-            "text"
-          ],
-          "limit": {
-            "context": 131072,
-            "output": 16384
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.006,
-            "estimated_latency": "moderate",
-            "category": "general"
+            "category": "reasoning",
+            "recommended": {
+              "temperature": 0.6,
+              "top_p": 0.95
+            }
           }
         },
         "qwen3.6-35b-a3b": {
-          "name": "Qwen 3.6 35B (SAIA)",
-          "reasoning": false,
+          "name": "Qwen 3.6 35B A3B (SAIA)",
+          "reasoning": true,
           "input": [
             "text",
             "image"
           ],
           "limit": {
-            "context": 131072,
+            "context": 262000,
             "output": 16384
           },
           "metadata": {
             "cost_per_1k_tokens": 0.018,
             "estimated_latency": "moderate",
-            "category": "general"
+            "category": "reasoning",
+            "recommended": {
+              "temperature": 1,
+              "top_p": 0.95
+            }
+          }
+        },
+        "qwen3.8-27b": {
+          "name": "Qwen 3.8 27B (SAIA)",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "limit": {
+            "context": 262000,
+            "output": 32768
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.006,
+            "estimated_latency": "moderate",
+            "category": "reasoning",
+            "recommended": {
+              "temperature": 1,
+              "top_p": 0.95
+            }
           }
         },
         "qwen3-coder-next": {
@@ -265,7 +261,7 @@
             "text"
           ],
           "limit": {
-            "context": 131072,
+            "context": 256000,
             "output": 16384
           },
           "metadata": {
@@ -275,174 +271,21 @@
           }
         },
         "qwen3-omni-30b-a3b-instruct": {
-          "name": "Qwen 3 Omni 30B (SAIA)",
+          "name": "Qwen 3 Omni 30B A3B Instruct (SAIA)",
           "reasoning": false,
           "input": [
             "text",
-            "image"
+            "image",
+            "audio"
           ],
           "limit": {
-            "context": 32768,
+            "context": 256000,
             "output": 4096
           },
           "metadata": {
             "cost_per_1k_tokens": 0.018,
             "estimated_latency": "moderate",
             "category": "vision"
-          }
-        },
-        "qwen3.8-2.4t-a95b": {
-          "name": "Qwen 3.8 2.4T A95B (SAIA)",
-          "reasoning": true,
-          "input": [
-            "text"
-          ],
-          "limit": {
-            "context": 256000,
-            "output": 65536
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.125,
-            "estimated_latency": "very-slow",
-            "category": "reasoning"
-          }
-        },
-        "qwen3.8-27b": {
-          "name": "Qwen 3.8 27B (SAIA)",
-          "reasoning": false,
-          "input": [
-            "text",
-            "image"
-          ],
-          "limit": {
-            "context": 131072,
-            "output": 32768
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.006,
-            "estimated_latency": "moderate",
-            "category": "general"
-          }
-        },
-        "best-for-agentic": {
-          "name": "best-for-agentic → glm-5.3-flash",
-          "reasoning": false,
-          "input": [
-            "text"
-          ],
-          "limit": {
-            "context": 131072,
-            "output": 16384
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.015,
-            "estimated_latency": "fast",
-            "category": "agentic",
-            "alias_of": "glm-5.3-flash"
-          }
-        },
-        "best-for-reasoning": {
-          "name": "best-for-reasoning → qwen3.8-2.4t-a95b",
-          "reasoning": true,
-          "input": [
-            "text"
-          ],
-          "limit": {
-            "context": 256000,
-            "output": 65536
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.125,
-            "estimated_latency": "very-slow",
-            "category": "reasoning",
-            "alias_of": "qwen3.8-2.4t-a95b"
-          }
-        },
-        "best-quality": {
-          "name": "best-quality → qwen3.8-2.4t-a95b",
-          "reasoning": true,
-          "input": [
-            "text"
-          ],
-          "limit": {
-            "context": 256000,
-            "output": 65536
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.125,
-            "estimated_latency": "very-slow",
-            "category": "reasoning",
-            "alias_of": "qwen3.8-2.4t-a95b"
-          }
-        },
-        "fastest-reasoning": {
-          "name": "fastest-reasoning → qwen3.8-27b",
-          "reasoning": false,
-          "input": [
-            "text",
-            "image"
-          ],
-          "limit": {
-            "context": 131072,
-            "output": 32768
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.006,
-            "estimated_latency": "moderate",
-            "category": "general",
-            "alias_of": "qwen3.8-27b"
-          }
-        },
-        "fastest": {
-          "name": "fastest → meta-llama-3.1-8b-instruct",
-          "reasoning": false,
-          "input": [
-            "text"
-          ],
-          "limit": {
-            "context": 131072,
-            "output": 4096
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.003,
-            "estimated_latency": "fast",
-            "category": "general",
-            "alias_of": "meta-llama-3.1-8b-instruct"
-          }
-        },
-        "budget": {
-          "name": "budget → deepseek-v4-flash-0731",
-          "reasoning": false,
-          "input": [
-            "text"
-          ],
-          "limit": {
-            "context": 131072,
-            "output": 16384
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.008,
-            "estimated_latency": "fast",
-            "category": "general",
-            "alias_of": "deepseek-v4-flash-0731"
-          }
-        },
-        "best-for-vision": {
-          "name": "best-for-vision → qwen3.8-27b",
-          "reasoning": false,
-          "input": [
-            "text",
-            "image"
-          ],
-          "limit": {
-            "context": 131072,
-            "output": 32768
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.006,
-            "estimated_latency": "moderate",
-            "category": "general",
-            "alias_of": "qwen3.8-27b"
           }
         },
         "best-for-coding": {
@@ -452,7 +295,7 @@
             "text"
           ],
           "limit": {
-            "context": 131072,
+            "context": 256000,
             "output": 16384
           },
           "metadata": {
@@ -460,6 +303,153 @@
             "estimated_latency": "fast",
             "category": "coder",
             "alias_of": "qwen3-coder-next"
+          }
+        },
+        "best-for-reasoning": {
+          "name": "best-for-reasoning → qwen3.5-397b-a17b",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "limit": {
+            "context": 256000,
+            "output": 32768
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.125,
+            "estimated_latency": "very-slow",
+            "category": "reasoning",
+            "alias_of": "qwen3.5-397b-a17b",
+            "recommended": {
+              "temperature": 0.6,
+              "top_p": 0.95
+            }
+          }
+        },
+        "best-quality": {
+          "name": "best-quality → qwen3.5-397b-a17b",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "limit": {
+            "context": 256000,
+            "output": 32768
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.125,
+            "estimated_latency": "very-slow",
+            "category": "reasoning",
+            "alias_of": "qwen3.5-397b-a17b",
+            "recommended": {
+              "temperature": 0.6,
+              "top_p": 0.95
+            }
+          }
+        },
+        "best-for-vision": {
+          "name": "best-for-vision → qwen3.8-27b",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "limit": {
+            "context": 262000,
+            "output": 32768
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.006,
+            "estimated_latency": "moderate",
+            "category": "reasoning",
+            "alias_of": "qwen3.8-27b",
+            "recommended": {
+              "temperature": 1,
+              "top_p": 0.95
+            }
+          }
+        },
+        "best-for-agentic": {
+          "name": "best-for-agentic → glm-5.3-flash",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image",
+            "video"
+          ],
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.015,
+            "estimated_latency": "fast",
+            "category": "agentic",
+            "alias_of": "glm-5.3-flash",
+            "recommended": {
+              "temperature": 1,
+              "top_p": 0.95
+            }
+          }
+        },
+        "fastest": {
+          "name": "fastest → meta-llama-3.1-8b-instruct",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "limit": {
+            "context": 128000,
+            "output": 4096
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.003,
+            "estimated_latency": "fast",
+            "category": "general",
+            "alias_of": "meta-llama-3.1-8b-instruct"
+          }
+        },
+        "fastest-reasoning": {
+          "name": "fastest-reasoning → qwen3.8-27b",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "limit": {
+            "context": 262000,
+            "output": 32768
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.006,
+            "estimated_latency": "moderate",
+            "category": "reasoning",
+            "alias_of": "qwen3.8-27b",
+            "recommended": {
+              "temperature": 1,
+              "top_p": 0.95
+            }
+          }
+        },
+        "budget": {
+          "name": "budget → deepseek-v4-flash-0731",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "limit": {
+            "context": 1000000,
+            "output": 32768
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.008,
+            "estimated_latency": "fast",
+            "category": "general",
+            "alias_of": "deepseek-v4-flash-0731",
+            "recommended": {
+              "temperature": 1,
+              "top_p": 1
+            }
           }
         }
       }

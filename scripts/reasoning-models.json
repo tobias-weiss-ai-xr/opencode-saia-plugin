@@ -1,0 +1,61 @@
+{
+  "_comment": "Curated reasoning-API parameters per SAIA model family, keyed by model-id prefix (longest match wins). This is the ONLY manually maintained layer of data/saia-models.json — the collector reports every live model without a matching entry so this file gets updated. Sources are vendor API docs / model cards.",
+  "entries": [
+    {
+      "prefix": "glm-5.3",
+      "supported": true,
+      "toggle": { "param": "thinking.type", "values": ["enabled"], "default": "enabled", "note": "forced thinking — cannot be disabled" },
+      "effort": { "param": "reasoning_effort", "values": ["low", "high", "max"], "default": "max" },
+      "sources": [
+        "https://docs.z.ai/guides/vlm/glm-5.3-flash",
+        "https://huggingface.co/zai-org/GLM-5.3-Flash"
+      ]
+    },
+    {
+      "prefix": "deepseek-v4-",
+      "supported": true,
+      "toggle": { "param": "thinking.type", "values": ["enabled", "disabled"], "default": "enabled" },
+      "effort": { "param": "reasoning_effort", "values": ["low", "high", "max"], "default": "high" },
+      "sources": [
+        "https://api-docs.deepseek.com/guides/thinking_mode/",
+        "https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731"
+      ]
+    },
+    {
+      "prefix": "qwen3.5-",
+      "supported": true,
+      "toggle": { "param": "enable_thinking", "values": [true, false] },
+      "sources": ["https://huggingface.co/Qwen"]
+    },
+    {
+      "prefix": "qwen3.6-",
+      "supported": true,
+      "toggle": { "param": "enable_thinking", "values": [true, false] },
+      "sources": ["https://huggingface.co/Qwen"]
+    },
+    {
+      "prefix": "qwen3.8-",
+      "supported": true,
+      "toggle": { "param": "enable_thinking", "values": [true, false] },
+      "sources": ["https://huggingface.co/Qwen"]
+    },
+    {
+      "prefix": "openai-gpt-oss-",
+      "supported": true,
+      "effort": { "param": "reasoning_effort", "values": ["low", "medium", "high"], "default": "medium" },
+      "sources": ["https://platform.openai.com/docs/guides/reasoning", "https://huggingface.co/openai/gpt-oss-120b"]
+    },
+    {
+      "prefix": "qwen3-30b-a3b-instruct",
+      "supported": false,
+      "note": "GWDG docs: operates in non-thinking mode"
+    },
+    { "prefix": "qwen3-coder-next", "supported": false, "note": "Qwen3 Coder: non-thinking" },
+    { "prefix": "qwen3-omni-", "supported": false, "note": "conversational omni model, no reasoning switch" },
+    { "prefix": "gemma-", "supported": false },
+    { "prefix": "mistral-", "supported": false },
+    { "prefix": "devstral-", "supported": false },
+    { "prefix": "apertus-", "supported": false },
+    { "prefix": "meta-llama-", "supported": false }
+  ]
+}

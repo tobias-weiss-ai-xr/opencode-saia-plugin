@@ -1,0 +1,685 @@
+{
+  "generated_at": "2026-10-07T03:42:20.028Z",
+  "sources": {
+    "live_api": "https://chat-ai.academiccloud.de/v1/models",
+    "docs": "https://docs.hpc.gwdg.de/services/ai-services/chat-ai/models/index.html",
+    "reasoning": "scripts/reasoning-models.json (curated; see entry sources)",
+    "notes": "context_window.tokens is derived from the docs display value (k=1e3, M=1e6); the display string preserves the source. External (closed) models are excluded — the SAIA API does not serve them."
+  },
+  "live": {
+    "models": [
+      {
+        "demand": 0,
+        "id": "apertus-70b-instruct-2509",
+        "name": "Apertus 70B Instruct 2509",
+        "owned_by": "chat-ai",
+        "input": [
+          "text"
+        ],
+        "created": 1791344539,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 0,
+        "id": "devstral-2-123b-instruct-2512",
+        "name": "Devstral 2 123B Instruct 2512",
+        "owned_by": "chat-ai",
+        "input": [
+          "text"
+        ],
+        "created": 1791344539,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 0,
+        "id": "qwen3.8-27b",
+        "name": "Qwen 3.8 27B",
+        "owned_by": "chat-ai",
+        "input": [
+          "text"
+        ],
+        "created": 1791344539,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 1,
+        "id": "deepseek-v4-flash-0731",
+        "name": "DeepSeek V4 Flash 0731",
+        "owned_by": "chat-ai",
+        "input": [
+          "text"
+        ],
+        "created": 1791344539,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 0,
+        "id": "glm-5.3-flash",
+        "name": "GLM 5.3 Flash",
+        "owned_by": "chat-ai",
+        "input": [
+          "text",
+          "image",
+          "video"
+        ],
+        "created": 1791344539,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 0,
+        "id": "qwen3-coder-next",
+        "name": "Qwen 3 Coder Next",
+        "owned_by": "chat-ai",
+        "input": [
+          "text"
+        ],
+        "created": 1791344539,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 0,
+        "id": "qwen3-omni-30b-a3b-instruct",
+        "name": "Qwen 3 Omni 30B A3B Instruct",
+        "owned_by": "chat-ai",
+        "input": [
+          "text",
+          "image",
+          "audio"
+        ],
+        "created": 1791344539,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 0,
+        "id": "mistral-medium-3.5-128b",
+        "name": "Mistral Medium 3.5 128B",
+        "owned_by": "chat-ai",
+        "input": [
+          "text"
+        ],
+        "created": 1791344539,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 0,
+        "id": "qwen3.5-397b-a17b",
+        "name": "Qwen 3.5 397B A17B",
+        "owned_by": "chat-ai",
+        "input": [
+          "text",
+          "image"
+        ],
+        "created": 1791344539,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text",
+          "thought"
+        ]
+      },
+      {
+        "demand": 0,
+        "id": "gemma-4-31b-it",
+        "name": "Gemma 4 31B Instruct",
+        "owned_by": "chat-ai",
+        "input": [
+          "text",
+          "image"
+        ],
+        "created": 1791344539,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 0,
+        "id": "qwen3.6-35b-a3b",
+        "name": "Qwen 3.6 35B A3B",
+        "owned_by": "chat-ai",
+        "input": [
+          "text",
+          "image"
+        ],
+        "created": 1791344539,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 0,
+        "id": "meta-llama-3.1-8b-instruct",
+        "name": "Meta Llama 3.1 8B Instruct",
+        "owned_by": "chat-ai",
+        "input": [
+          "text"
+        ],
+        "created": 1791344539,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 0,
+        "id": "openai-gpt-oss-120b",
+        "name": "OpenAI GPT OSS 120B",
+        "owned_by": "chat-ai",
+        "input": [
+          "text"
+        ],
+        "created": 1791344539,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      },
+      {
+        "demand": 0,
+        "id": "qwen3-30b-a3b-instruct-2507",
+        "name": "Qwen 3 30B A3B Instruct 2507",
+        "owned_by": "chat-ai",
+        "input": [
+          "text"
+        ],
+        "created": 1791344539,
+        "object": "model",
+        "status": "ready",
+        "output": [
+          "text"
+        ]
+      }
+    ]
+  },
+  "models": [
+    {
+      "id": "apertus-70b-instruct-2509",
+      "name": "Apertus 70B Instruct 2509",
+      "org": "Swiss AI",
+      "status": "ready",
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ],
+      "context_window": {
+        "display": "65k",
+        "tokens": 65000
+      },
+      "released": "Sep 2025",
+      "reasoning": {
+        "supported": false
+      },
+      "recommended": {
+        "temperature": 0.8,
+        "top_p": 0.9
+      },
+      "notes": {
+        "advantages": "Fully open-source, Multilingual"
+      }
+    },
+    {
+      "id": "deepseek-v4-flash-0731",
+      "name": "DeepSeek V4 Flash 0731",
+      "org": "DeepSeek",
+      "status": "ready",
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ],
+      "context_window": {
+        "display": "1M",
+        "tokens": 1000000
+      },
+      "released": "Jul 2026",
+      "reasoning": {
+        "supported": true,
+        "toggle": {
+          "param": "thinking.type",
+          "values": [
+            "enabled",
+            "disabled"
+          ],
+          "default": "enabled"
+        },
+        "effort": {
+          "param": "reasoning_effort",
+          "values": [
+            "low",
+            "high",
+            "max"
+          ],
+          "default": "high"
+        },
+        "sources": [
+          "https://api-docs.deepseek.com/guides/thinking_mode/",
+          "https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731"
+        ]
+      },
+      "recommended": {
+        "temperature": 1,
+        "top_p": 1
+      },
+      "notes": {
+        "advantages": "Great overall performance",
+        "limitations": "Censorship"
+      }
+    },
+    {
+      "id": "devstral-2-123b-instruct-2512",
+      "name": "Devstral 2 123B Instruct 2512",
+      "org": "Mistral",
+      "status": "ready",
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ],
+      "context_window": {
+        "display": "256K",
+        "tokens": 256000
+      },
+      "released": "Dec 2025",
+      "reasoning": {
+        "supported": false
+      },
+      "notes": {
+        "advantages": "Coding, agentic tasks"
+      }
+    },
+    {
+      "id": "gemma-4-31b-it",
+      "name": "Gemma 4 31B Instruct",
+      "org": "Google",
+      "status": "ready",
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ],
+      "context_window": {
+        "display": "256k",
+        "tokens": 256000
+      },
+      "released": "Apr 2026",
+      "reasoning": {
+        "supported": false
+      },
+      "notes": {
+        "advantages": "Vision, great overall performance"
+      }
+    },
+    {
+      "id": "glm-5.3-flash",
+      "name": "GLM 5.3 Flash",
+      "org": "Z.ai",
+      "status": "ready",
+      "input": [
+        "text",
+        "image",
+        "video"
+      ],
+      "output": [
+        "text"
+      ],
+      "context_window": {
+        "display": "1M",
+        "tokens": 1000000
+      },
+      "released": "Feb 2026",
+      "reasoning": {
+        "supported": true,
+        "toggle": {
+          "param": "thinking.type",
+          "values": [
+            "enabled"
+          ],
+          "default": "enabled",
+          "note": "forced thinking — cannot be disabled"
+        },
+        "effort": {
+          "param": "reasoning_effort",
+          "values": [
+            "low",
+            "high",
+            "max"
+          ],
+          "default": "max"
+        },
+        "sources": [
+          "https://docs.z.ai/guides/vlm/glm-5.3-flash",
+          "https://huggingface.co/zai-org/GLM-5.3-Flash"
+        ]
+      },
+      "recommended": {
+        "temperature": 1,
+        "top_p": 0.95
+      },
+      "notes": {
+        "advantages": "Multimodal, great coding & agentic performance"
+      }
+    },
+    {
+      "id": "meta-llama-3.1-8b-instruct",
+      "name": "Llama 3.1 8B Instruct",
+      "org": "Meta",
+      "status": "ready",
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ],
+      "context_window": {
+        "display": "128k",
+        "tokens": 128000
+      },
+      "released": "Jul 2024",
+      "reasoning": {
+        "supported": false
+      },
+      "notes": {
+        "advantages": "Fast overall performance"
+      }
+    },
+    {
+      "id": "mistral-medium-3.5-128b",
+      "name": "Mistral Medium 3.5 128B",
+      "org": "Mistral",
+      "status": "ready",
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ],
+      "context_window": {
+        "display": "256K",
+        "tokens": 256000
+      },
+      "released": "Apr 2026",
+      "reasoning": {
+        "supported": false
+      },
+      "notes": {
+        "advantages": "Great overall performance"
+      }
+    },
+    {
+      "id": "openai-gpt-oss-120b",
+      "name": "GPT OSS 120B",
+      "org": "OpenAI",
+      "status": "ready",
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ],
+      "context_window": {
+        "display": "128k",
+        "tokens": 128000
+      },
+      "released": "Aug 2025",
+      "reasoning": {
+        "supported": true,
+        "effort": {
+          "param": "reasoning_effort",
+          "values": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "default": "medium"
+        },
+        "sources": [
+          "https://platform.openai.com/docs/guides/reasoning",
+          "https://huggingface.co/openai/gpt-oss-120b"
+        ]
+      },
+      "notes": {
+        "advantages": "Great overall performance, fast"
+      }
+    },
+    {
+      "id": "qwen3-30b-a3b-instruct-2507",
+      "name": "Qwen 3 30B A3B Instruct 2507",
+      "org": "Alibaba Cloud",
+      "status": "ready",
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ],
+      "context_window": {
+        "display": "256k",
+        "tokens": 256000
+      },
+      "released": "Jul 2025",
+      "reasoning": {
+        "supported": false,
+        "note": "GWDG docs: operates in non-thinking mode"
+      },
+      "recommended": {
+        "temperature": 0.6,
+        "top_p": 0.95
+      },
+      "notes": {
+        "advantages": "Good performance, fast"
+      }
+    },
+    {
+      "id": "qwen3-coder-next",
+      "name": "Qwen 3 Coder Next",
+      "org": "Alibaba Cloud",
+      "status": "ready",
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ],
+      "context_window": {
+        "display": "256k",
+        "tokens": 256000
+      },
+      "released": "Feb 2026",
+      "reasoning": {
+        "supported": false,
+        "note": "Qwen3 Coder: non-thinking"
+      },
+      "notes": {
+        "advantages": "Coding"
+      }
+    },
+    {
+      "id": "qwen3-omni-30b-a3b-instruct",
+      "name": "Qwen 3 Omni 30B A3B Instruct",
+      "org": "Alibaba Cloud",
+      "status": "ready",
+      "input": [
+        "text",
+        "image",
+        "audio"
+      ],
+      "output": [
+        "text"
+      ],
+      "context_window": {
+        "display": "256k",
+        "tokens": 256000
+      },
+      "released": "Sep 2025",
+      "reasoning": {
+        "supported": false,
+        "note": "conversational omni model, no reasoning switch"
+      },
+      "notes": {
+        "advantages": "Multimodal"
+      }
+    },
+    {
+      "id": "qwen3.5-397b-a17b",
+      "name": "Qwen 3.5 397B A17B",
+      "org": "Alibaba Cloud",
+      "status": "ready",
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text",
+        "thought"
+      ],
+      "context_window": {
+        "display": "256K",
+        "tokens": 256000
+      },
+      "released": "Feb 2026",
+      "reasoning": {
+        "supported": true,
+        "toggle": {
+          "param": "enable_thinking",
+          "values": [
+            true,
+            false
+          ]
+        },
+        "sources": [
+          "https://huggingface.co/Qwen"
+        ]
+      },
+      "recommended": {
+        "temperature": 0.6,
+        "top_p": 0.95
+      },
+      "notes": {
+        "advantages": "Vision, great overall performance"
+      }
+    },
+    {
+      "id": "qwen3.6-35b-a3b",
+      "name": "Qwen 3.6 35B A3B",
+      "org": "Alibaba Cloud",
+      "status": "ready",
+      "input": [
+        "text",
+        "image"
+      ],
+      "output": [
+        "text"
+      ],
+      "context_window": {
+        "display": "262K",
+        "tokens": 262000
+      },
+      "released": "Apr 2026",
+      "reasoning": {
+        "supported": true,
+        "toggle": {
+          "param": "enable_thinking",
+          "values": [
+            true,
+            false
+          ]
+        },
+        "sources": [
+          "https://huggingface.co/Qwen"
+        ]
+      },
+      "recommended": {
+        "temperature": 1,
+        "top_p": 0.95
+      },
+      "notes": {
+        "advantages": "Vision, great overall performance"
+      }
+    },
+    {
+      "id": "qwen3.8-27b",
+      "name": "Qwen 3.8 27B",
+      "org": "Alibaba Cloud",
+      "status": "ready",
+      "input": [
+        "text"
+      ],
+      "output": [
+        "text"
+      ],
+      "context_window": {
+        "display": "262K",
+        "tokens": 262000
+      },
+      "released": "Aug 2026",
+      "reasoning": {
+        "supported": true,
+        "toggle": {
+          "param": "enable_thinking",
+          "values": [
+            true,
+            false
+          ]
+        },
+        "sources": [
+          "https://huggingface.co/Qwen"
+        ]
+      },
+      "recommended": {
+        "temperature": 1,
+        "top_p": 0.95
+      },
+      "notes": {
+        "advantages": "Vision, great overall performance"
+      }
+    }
+  ],
+  "gaps": {
+    "api_without_docs": [],
+    "docs_without_api": [],
+    "reasoning_unknown": []
+  }
+}
