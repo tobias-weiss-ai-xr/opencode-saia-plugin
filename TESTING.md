@@ -241,3 +241,64 @@ npm run validate            # bash src/validate-config.sh opencode.json  (actual
 ### US-D5 — Reasoning flags and sampling mirror the facts
 - **Test:** `saia-config-drift.test.mjs` → "reasoning flags and recommended
   sampling mirror the facts file".
+
+---
+
+## Epic SAIA-HYGIENE — retired models and hand-curated tables stay dead
+
+> As a user I want no shipped surface (config, scripts, docs) to recommend a
+> model that 500s because SAIA retired it, and no metadata to sneak back in
+> as literals.
+
+### US-H1 — No shipped surface mentions a retired model
+- **Given** the retired set (glm-4.7, qwen3.8-2.4t-a95b, qwen3.5-122b-a10b,
+  qwen3.6-27b, medgemma-27b-it)
+- **Then** none of opencode.json, src/opencode-saia.json,
+  generate-saia-config.sh, README.md contain one. (CHANGELOG is history and
+  exempt.)
+- **Test:** `saia-hygiene.test.mjs` → "no shipped surface mentions a retired
+  model".
+
+### US-H2 — Sync script carries taste, not facts-as-literals
+- **Then** the sync script contains no hardcoded context windows, no
+  FORCE_INCLUDE/MODEL_METADATA tables, and reads facts via `fact_for`.
+- **Test:** `saia-hygiene.test.mjs` → "sync script carries taste, not
+  facts-as-literals".
+
+### US-H3 — Shell entry points parse
+- **Then** `bash -n` passes on the sync + generate scripts.
+- **Test:** `saia-hygiene.test.mjs` → "shell entry points parse".
+
+---
+
+## Epic SAIA-DOCS — the documentation can never lag the catalog
+
+> As a user I want README claims enforced by CI, so docs never recommend
+> dead models or stale limits again.
+
+### US-O1 — README model table matches the live catalog exactly
+- **Test:** `saia-docs.test.mjs` → "README model table matches the live
+  catalog exactly" (id set + context windows vs. data/saia-models.json).
+
+### US-O2 — Documented default model is the shipped default
+- **Test:** `saia-docs.test.mjs` → "documented default model is the shipped
+  default" (`saia/deepseek-v4-flash-0731`).
+
+### US-O3 — The raw-catalog curl URL is correct
+- **Test:** `saia-docs.test.mjs` → "the raw-catalog curl URL is correct"
+  (https; codeberg 302s plain http silently).
+
+---
+
+## Epic SAIA-CONTRACT — the data file's own structure is consistent
+
+> As a repo consumer I want the data file internally verifiable, so the
+> catalog cannot claim models the API never returned.
+
+### US-T1 — models[] derives from the recorded live snapshot
+- **Test:** `saia-contract.test.mjs` → "models[] is derived from the recorded
+  live snapshot" (same ids, same input/output modalities).
+
+### US-T2 — Provenance fields are present and well-formed
+- **Test:** `saia-contract.test.mjs` → "provenance fields are present and
+  well-formed" (parseable generated_at, https source URLs).

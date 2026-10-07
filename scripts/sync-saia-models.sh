@@ -122,9 +122,6 @@ categorize() {
         *omni*|*vl-*|*vision*|internvl*)
             echo "vision"
             ;;
-        medgemma*)
-            echo "medical"
-            ;;
         devstral*|mistral-medium*|glm-5.3-flash)
             echo "agentic"
             ;;
@@ -164,6 +161,10 @@ echo "$FINAL_MODELS" | while read -r model_id; do
     input_types=$(echo "$MODELS_JSON" | jq -r --arg id "$model_id" 'first(.data[] | select(.id == $id) | .input // ["text"]) | join(",")')
     recommended=$(fact_for "$model_id" '.recommended')
     IFS='|' read -r max_tokens cost latency <<< "$(taste_for "$model_id")"
+    # never advertise an output cap larger than the model's context
+    if [ "$context" != "null" ] && [ "$max_tokens" -gt "$context" ] 2>/dev/null; then
+        max_tokens="$context"
+    fi
     category=$(categorize "$model_id")
     
     # Format input types as JSON array
@@ -210,6 +211,9 @@ for alias_row in "${ALIASES[@]}"; do
         input_types=$(echo "$MODELS_JSON" | jq -r --arg id "$target" 'first(.data[] | select(.id == $id) | .input // ["text"]) | join(",")')
         recommended=$(fact_for "$target" '.recommended')
         IFS='|' read -r max_tokens cost latency <<< "$(taste_for "$target")"
+        if [ "$context" != "null" ] && [ "$max_tokens" -gt "$context" ] 2>/dev/null; then
+            max_tokens="$context"
+        fi
         category=$(categorize "$target")
         
         input_json=$(echo "$input_types" | sed 's/,/", "/g' | sed 's/^/["/' | sed 's/$/"]/')

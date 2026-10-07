@@ -29,10 +29,8 @@ const configured = provider.models
 const factById = new Map(facts.models.map((model) => [model.id, model]))
 
 // Retired upstream (HTTP 500 / removed from /v1/models) — must never reappear
-// via a stale hand-curated table again.
-const RETIRED_IDS = ["glm-4.7", "qwen3.8-2.4t-a95b", "qwen3.5-122b-a10b", "qwen3.6-27b", "medgemia-27b-it"].map((id) =>
-  id === "medgemia-27b-it" ? "medgemma-27b-it" : id,
-)
+// via a stale hand-curated table again. Keep in sync with data/saia-models.json.
+const RETIRED_IDS = ["glm-4.7", "qwen3.8-2.4t-a95b", "qwen3.5-122b-a10b", "qwen3.6-27b", "medgemma-27b-it"]
 
 const configuredAliases = Object.entries(configured).filter(([id]) => !factById.has(id))
 

@@ -255,7 +255,7 @@ include_in_profile_production() {
 
     # Production: Highest quality models for critical work
     case "$id" in
-        qwen3.5-397b-a17b|qwen3.5-122b-a10b|openai-gpt-oss-120b|mistral-medium-3.5-128b|glm-5.3-flash|devstral-2*)
+        qwen3.5-397b-a17b|openai-gpt-oss-120b|mistral-medium-3.5-128b|glm-5.3-flash|devstral-2*)
             echo "true"
             ;;
         deepseek-v4-flash*)
@@ -276,7 +276,7 @@ include_in_profile_development() {
 
     # Development: Balanced models for active development
     case "$id" in
-        qwen3.6-35b-a3b|qwen3.6-27b|qwen3-coder-next|glm-5.3-flash|deepseek-v4-flash*|mistral-medium-3.5-128b)
+        qwen3.6-35b-a3b|qwen3-coder-next|glm-5.3-flash|deepseek-v4-flash*|mistral-medium-3.5-128b)
             echo "true"
             ;;
         gemma-4-31b-it|apertus-70b*)
@@ -294,9 +294,6 @@ include_in_profile_budget() {
     # Budget: Cheapest and fastest models only
     case "$id" in
         meta-llama-3.1-8b-instruct|qwen3-30b-a3b-instruct-2507|deepseek-v4-flash-0731)
-            echo "true"
-            ;;
-        qwen3.6-27b)
             echo "true"
             ;;
         *)
@@ -328,9 +325,6 @@ describe() {
     local cat="$2"
     case "$id" in
         qwen3.5-397b-a17b)       echo "Qwen3.5 397B MoE (128k ctx) — Flagship reasoning, best quality" ;;
-        qwen3.5-122b-a10b)       echo "Qwen3.5 122B MoE (128k ctx) — Strong reasoning, fast" ;;
-        qwen3.6-27b)             echo "Qwen3.6 27B Dense — Efficient generalist" ;;
-        qwen3.6-27b)             echo "Qwen3.6 27B Dense — Efficient generalist" ;;
         qwen3.6-35b-a3b)         echo "Qwen3.6 35B MoE (128k ctx) — Vision, reasoning, agentic coding" ;;
         qwen3-coder-next)         echo "Qwen3 Coder Next — Code-specialized" ;;
         qwen3-omni-30b-a3b-instruct) echo "Qwen3 Omni 30B — Multimodal (text+audio)" ;;
@@ -342,7 +336,6 @@ describe() {
         deepseek-v4-flash-0731)    echo "DeepSeek V4 Flash (128k ctx) — Fast reasoning, lightweight" ;;
         gemma-4-31b-it)          echo "Gemma 4 31B — Google latest" ;;
         apertus-70b-instruct-2509) echo "Apertus 70B — Open-source instruct model" ;;
-        medgemma-27b-it)         echo "MedGemma 27B — Medical domain specialist" ;;
         meta-llama-3.1-8b-instruct) echo "Llama 3.1 8B — Meta lightweight" ;;
         *)
             # Fallback: capitalize category
@@ -354,7 +347,7 @@ describe() {
 can_reason() {
     local id="$1"
     case "$id" in
-        *thinking*|*r1*|qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3-30b-a3b-instruct-2507)
+        *thinking*|*r1*|qwen3.5-397b-a17b|qwen3-30b-a3b-instruct-2507)
             echo "true"
             ;;
         *)
@@ -366,13 +359,13 @@ can_reason() {
 get_context_window() {
     local id="$1"
     case "$id" in
-        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.6-35b-a3b|qwen3.6-27b|glm-5.3-flash|meta-llama-3.1-8b-instruct|apertus-70b-instruct-2509|devstral-2-123b-instruct-2512|openai-gpt-oss-120b|mistral-medium-3.5-128b|deepseek-v4-flash-0731)
+        qwen3.5-397b-a17b|qwen3.6-35b-a3b|glm-5.3-flash|meta-llama-3.1-8b-instruct|apertus-70b-instruct-2509|devstral-2-123b-instruct-2512|openai-gpt-oss-120b|mistral-medium-3.5-128b|deepseek-v4-flash-0731)
             echo "128000"
             ;;
         gemma-4-31b-it|qwen3-coder-next|qwen3-30b-a3b-instruct-2507)
             echo "131072"
             ;;
-        medgemma-27b-it|qwen3-omni-30b-a3b-instruct)
+        qwen3-omni-30b-a3b-instruct)
             echo "32768"
             ;;
         *)
@@ -384,7 +377,7 @@ get_context_window() {
 supports_attachment() {
     local id="$1"
     case "$id" in
-        qwen3.6-35b-a3b|qwen3-omni-30b-a3b-instruct|gemma-4-31b-it|medgemma-27b-it|qwen3.5-397b-a17b|qwen3.5-122b-a10b)
+        qwen3.6-35b-a3b|qwen3-omni-30b-a3b-instruct|gemma-4-31b-it|qwen3.5-397b-a17b)
             echo "true"
             ;;
         *)
@@ -396,10 +389,10 @@ supports_attachment() {
 get_output_window() {
     local id="$1"
     case "$id" in
-        qwen3.5-397b-a17b|qwen3.5-122b-a10b|qwen3.6-35b-a3b|mistral-medium-3.5-128b)
+        qwen3.5-397b-a17b|qwen3.6-35b-a3b|mistral-medium-3.5-128b)
             echo "32768"
             ;;
-        glm-5.3-flash|devstral-2-123b-instruct-2512|qwen3-coder-next|deepseek-v4-flash-0731|qwen3.6-27b)
+        glm-5.3-flash|devstral-2-123b-instruct-2512|qwen3-coder-next|deepseek-v4-flash-0731)
             echo "16384"
             ;;
         qwen3-30b-a3b-instruct-2507)
@@ -408,7 +401,7 @@ get_output_window() {
         gemma-4-31b-it|apertus-70b-instruct-2509|openai-gpt-oss-120b)
             echo "8192"
             ;;
-        qwen3-omni-30b-a3b-instruct|medgemma-27b-it)
+        qwen3-omni-30b-a3b-instruct)
             echo "4096"
             ;;
         meta-llama-3.1-8b-instruct)
