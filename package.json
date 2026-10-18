@@ -5,12 +5,15 @@
   "type": "module",
   "main": "./src/saia.ts",
   "bin": {
+    "opencode-saia-plugin": "./reconcile-opencode-models.mjs",
     "generate-saia-config": "./src/generate-saia-config.sh",
     "copy-saia-config": "./src/copy-saia-config.sh",
     "validate-saia-config": "./src/validate-config.sh",
-    "setup-saia-wizard": "./src/setup-wizard.sh"
+    "setup-saia-wizard": "./src/setup-wizard.sh",
+    "reconcile-opencode-models": "./src/reconcile-opencode-models.sh"
   },
   "files": [
+    "reconcile-opencode-models.mjs",
     "src/",
     "schema/",
     ".opencode/",
@@ -22,11 +25,13 @@
   ],
   "scripts": {
     "prepare-release": "bash prepare-release.sh",
-    "test": "node --import tsx --test src/*.test.mjs",
+    "test": "bash scripts/test.sh",
     "validate": "bash src/validate-config.sh opencode.json",
+    "prune-stale": "bash src/reconcile-opencode-models.sh",
     "generate": "bash src/generate-saia-config.sh",
     "sync-models": "./scripts/sync-saia-models.sh",
-    "tsc": "tsc --noEmit --skipLibCheck"
+    "tsc": "tsc --noEmit --skipLibCheck",
+    "test:node": "node --import tsx --test src/*.test.mjs"
   },
   "repository": {
     "type": "git",

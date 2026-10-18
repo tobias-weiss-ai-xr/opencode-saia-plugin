@@ -29,6 +29,19 @@ export SAIA_API_KEY=your_key
 
 See [`scripts/README.md`](scripts/README.md) for details on automation and force-include options.
 
+## 🧹 Cleanup Stale Models
+
+To reconcile all providers against their live `/v1/models` and remove obsolete models:
+
+```bash
+npm run prune-stale              # dry-run
+npm run prune-stale -- --write   # apply (or directly via CLI)
+# or via global install
+npx opencode-saia-plugin --dry-run
+```
+
+See [Usage](#usage) for CLI details.
+
 ## Installation
 
 Requires: `SAIA_API_KEY`, `curl`, `jq`
