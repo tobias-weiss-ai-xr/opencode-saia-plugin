@@ -603,7 +603,7 @@ ELAPSED=$(echo "scale=2; ($(date +%s%N) - $TIMING_START) / 1000000000" | bc 2>/d
 print_info "Master configuration updated: $MASTER_CONFIG ($MODEL_COUNT models)"
 print_info "Config generation completed in ${ELAPSED}s"
 
-# Copy to current directory
-cp "$MASTER_CONFIG" ./opencode.json
+# Copy to current directory (strip last_updated — OpenCode rejects unrecognized root keys)
+jq 'del(.last_updated)' "$MASTER_CONFIG" > ./opencode.json
 print_info "Copied opencode.json to current directory"
 print_info "SAIA models are now available — restart OpenCode to load them."

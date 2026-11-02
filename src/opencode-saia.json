@@ -29,8 +29,8 @@
         "apiKey": "{env:SAIA_API_KEY}"
       },
       "models": {
-        "apertus-70b-instruct-2509": {
-          "name": "Apertus 70B — Open-source instruct model",
+        "deepseek-v4.1-flash-1017": {
+          "name": "deepseek-v4.1-flash-1017 \u00e2\u20ac\u201d General",
           "options": {
             "enable-tools": true,
             "enable-auto-tool-choice": true,
@@ -41,17 +41,17 @@
             "output": 8192
           },
           "metadata": {
-            "cost_per_1k_tokens": 0.025,
+            "cost_per_1k_tokens": 0.015,
             "estimated_latency": "moderate",
             "recommended_for": [
-              "large-context",
-              "document-analysis",
-              "complex-tasks"
+              "general-purpose",
+              "chat",
+              "daily-tasks"
             ]
           }
         },
         "deepseek-v4-flash-0731": {
-          "name": "DeepSeek V4 Flash (128k ctx) — Fast reasoning, lightweight",
+          "name": "DeepSeek V4 Flash (128k ctx) \u00e2\u20ac\u201d Fast reasoning, lightweight",
           "options": {
             "enable-tools": true,
             "enable-auto-tool-choice": true,
@@ -71,8 +71,8 @@
             ]
           }
         },
-        "devstral-2-123b-instruct-2512": {
-          "name": "Devstral 2 123B — Mistral's agentic coder",
+        "eurollm-22b-instruct-2512": {
+          "name": "eurollm-22b-instruct-2512 \u00e2\u20ac\u201d General",
           "options": {
             "enable-tools": true,
             "enable-auto-tool-choice": true,
@@ -80,20 +80,20 @@
           },
           "limit": {
             "context": 128000,
-            "output": 16384
+            "output": 8192
           },
           "metadata": {
             "cost_per_1k_tokens": 0.015,
             "estimated_latency": "moderate",
             "recommended_for": [
-              "agentic-coding",
-              "tool-use",
-              "architecture"
+              "general-purpose",
+              "chat",
+              "daily-tasks"
             ]
           }
         },
         "gemma-4-31b-it": {
-          "name": "Gemma 4 31B — Google latest",
+          "name": "Gemma 4 31B \u00e2\u20ac\u201d Google latest",
           "options": {
             "enable-tools": true,
             "enable-auto-tool-choice": true,
@@ -114,43 +114,41 @@
             ]
           }
         },
-        "glm-4.7": {
-          "name": "GLM-4.7 (128k ctx) — Agentic coding, strong tool use",
+        "glm-5.3": {
+          "name": "glm-5.3 \u00e2\u20ac\u201d General",
           "options": {
             "enable-tools": true,
             "enable-auto-tool-choice": true,
             "tool-call-parser": "openai"
           },
-          "can_reason": true,
           "limit": {
             "context": 128000,
-            "output": 16384
+            "output": 8192
           },
           "metadata": {
             "cost_per_1k_tokens": 0.015,
-            "estimated_latency": "fast",
+            "estimated_latency": "moderate",
             "recommended_for": [
-              "agentic-coding",
-              "tool-use",
-              "architecture"
+              "general-purpose",
+              "chat",
+              "daily-tasks"
             ]
           }
         },
-        "medgemma-27b-it": {
-          "name": "MedGemma 27B — Medical domain specialist",
+        "glm-5.3-flash": {
+          "name": "glm-5.3-flash \u00e2\u20ac\u201d General",
           "options": {
             "enable-tools": true,
             "enable-auto-tool-choice": true,
             "tool-call-parser": "openai"
           },
-          "attachment": true,
           "limit": {
-            "context": 32768,
-            "output": 4096
+            "context": 128000,
+            "output": 8192
           },
           "metadata": {
-            "cost_per_1k_tokens": 0.006,
-            "estimated_latency": "fast",
+            "cost_per_1k_tokens": 0.015,
+            "estimated_latency": "moderate",
             "recommended_for": [
               "general-purpose",
               "chat",
@@ -159,7 +157,7 @@
           }
         },
         "meta-llama-3.1-8b-instruct": {
-          "name": "Llama 3.1 8B — Meta lightweight",
+          "name": "Llama 3.1 8B \u00e2\u20ac\u201d Meta lightweight",
           "options": {
             "enable-tools": true,
             "enable-auto-tool-choice": true,
@@ -179,29 +177,8 @@
             ]
           }
         },
-        "mistral-medium-3.5-128b": {
-          "name": "Mistral Medium 3.5 128B — Balanced large context model",
-          "options": {
-            "enable-tools": true,
-            "enable-auto-tool-choice": true,
-            "tool-call-parser": "openai"
-          },
-          "limit": {
-            "context": 128000,
-            "output": 32768
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.003,
-            "estimated_latency": "fast",
-            "recommended_for": [
-              "agentic-coding",
-              "tool-use",
-              "architecture"
-            ]
-          }
-        },
-        "openai-gpt-oss-120b": {
-          "name": "OpenAI GPT-OSS 120B — Large context model",
+        "mistral-large-4-1t-a52b": {
+          "name": "mistral-large-4-1t-a52b \u00e2\u20ac\u201d Large-context",
           "options": {
             "enable-tools": true,
             "enable-auto-tool-choice": true,
@@ -212,29 +189,7 @@
             "output": 8192
           },
           "metadata": {
-            "cost_per_1k_tokens": 0.075,
-            "estimated_latency": "slow",
-            "recommended_for": [
-              "large-context",
-              "document-analysis",
-              "complex-tasks"
-            ]
-          }
-        },
-        "qwen3-30b-a3b-instruct-2507": {
-          "name": "Qwen3 30B Instruct — General purpose",
-          "options": {
-            "enable-tools": true,
-            "enable-auto-tool-choice": true,
-            "tool-call-parser": "openai"
-          },
-          "can_reason": true,
-          "limit": {
-            "context": 131072,
-            "output": 16384
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.018,
+            "cost_per_1k_tokens": 0.015,
             "estimated_latency": "moderate",
             "recommended_for": [
               "general-purpose",
@@ -243,30 +198,8 @@
             ]
           }
         },
-        "qwen3.5-122b-a10b": {
-          "name": "Qwen3.5 122B MoE (128k ctx) — Strong reasoning, fast",
-          "options": {
-            "enable-tools": true,
-            "enable-auto-tool-choice": true,
-            "tool-call-parser": "openai"
-          },
-          "can_reason": true,
-          "attachment": true,
-          "limit": {
-            "context": 128000,
-            "output": 32768
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.038,
-            "estimated_latency": "slow",
-            "recommended_for": [
-              "balanced-response",
-              "fast-reasoning"
-            ]
-          }
-        },
         "qwen3.5-397b-a17b": {
-          "name": "Qwen3.5 397B MoE (128k ctx) — Flagship reasoning, best quality",
+          "name": "Qwen3.5 397B MoE (128k ctx) \u00e2\u20ac\u201d Flagship reasoning, best quality",
           "options": {
             "enable-tools": true,
             "enable-auto-tool-choice": true,
@@ -287,35 +220,13 @@
             ]
           }
         },
-        "qwen3.6-27b": {
-          "name": "Qwen3.6 27B Dense — Efficient generalist",
-          "options": {
-            "enable-tools": true,
-            "enable-auto-tool-choice": true,
-            "tool-call-parser": "openai"
-          },
-          "limit": {
-            "context": 128000,
-            "output": 16384
-          },
-          "metadata": {
-            "cost_per_1k_tokens": 0.006,
-            "estimated_latency": "fast",
-            "recommended_for": [
-              "general-purpose",
-              "chat",
-              "daily-tasks"
-            ]
-          }
-        },
         "qwen3.6-35b-a3b": {
-          "name": "Qwen3.6 35B MoE (128k ctx) — Vision, reasoning, agentic coding",
+          "name": "Qwen3.6 35B MoE (128k ctx) \u00e2\u20ac\u201d Vision, reasoning, agentic coding",
           "options": {
             "enable-tools": true,
             "enable-auto-tool-choice": true,
             "tool-call-parser": "openai"
           },
-          "can_reason": true,
           "attachment": true,
           "limit": {
             "context": 128000,
@@ -331,8 +242,51 @@
             ]
           }
         },
+        "qwen3.8-27b": {
+          "name": "qwen3.8-27b \u00e2\u20ac\u201d General",
+          "options": {
+            "enable-tools": true,
+            "enable-auto-tool-choice": true,
+            "tool-call-parser": "openai"
+          },
+          "limit": {
+            "context": 128000,
+            "output": 8192
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.006,
+            "estimated_latency": "fast",
+            "recommended_for": [
+              "general-purpose",
+              "chat",
+              "daily-tasks"
+            ]
+          }
+        },
+        "qwen3-30b-a3b-instruct-2507": {
+          "name": "Qwen3 30B Instruct \u00e2\u20ac\u201d General purpose",
+          "options": {
+            "enable-tools": true,
+            "enable-auto-tool-choice": true,
+            "tool-call-parser": "openai"
+          },
+          "can_reason": true,
+          "limit": {
+            "context": 131072,
+            "output": 16384
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.018,
+            "estimated_latency": "moderate",
+            "recommended_for": [
+              "general-purpose",
+              "chat",
+              "daily-tasks"
+            ]
+          }
+        },
         "qwen3-coder-next": {
-          "name": "Qwen3 Coder Next — Code-specialized",
+          "name": "Qwen3 Coder Next \u00e2\u20ac\u201d Code-specialized",
           "options": {
             "enable-tools": true,
             "enable-auto-tool-choice": true,
@@ -353,7 +307,7 @@
           }
         },
         "qwen3-omni-30b-a3b-instruct": {
-          "name": "Qwen3 Omni 30B — Multimodal (text+audio)",
+          "name": "Qwen3 Omni 30B \u00e2\u20ac\u201d Multimodal (text+audio)",
           "options": {
             "enable-tools": true,
             "enable-auto-tool-choice": true,
@@ -401,15 +355,6 @@
             "tool-call-parser": "openai"
           }
         },
-        "best-for-agentic": {
-          "name": "Alias for glm-4.7",
-          "alias": true,
-          "options": {
-            "enable-tools": true,
-            "enable-auto-tool-choice": true,
-            "tool-call-parser": "openai"
-          }
-        },
         "best-quality": {
           "name": "Alias for qwen3.5-397b-a17b",
           "alias": true,
@@ -448,6 +393,5 @@
         }
       }
     }
-  },
-  "last_updated": "2026-08-13T17:59:53Z"
+  }
 }
