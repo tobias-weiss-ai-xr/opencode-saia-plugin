@@ -6,7 +6,8 @@
 // path when a project needs to opt into a plugin deliberately.
 //
 // The implementation stays nested in saia/ so its helper modules are not themselves
-// picked up as plugins. Behaviour confirmed on OpenCode 1.18.16.
+// picked up as plugins. The default export is the dual V1+V2 definition documented in
+// saia.ts: OpenCode 2.x reads id + setup, OpenCode >=1.18.29 calls server().
 import plugin from "./saia/saia.js"
 
 export default plugin

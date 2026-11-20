@@ -74,6 +74,11 @@ re-exports the runtime plugin at `plugins/saia/saia.ts`.
 
 ## Data Flow
 
+The plugin default-exports the dual V1+V2 definition: OpenCode 2.x calls
+`setup(ctx)` (provider/model transforms + `http.response`/`context` session
+hooks), OpenCode ≥1.18.29 calls `server()` (V1 `config`/`chat.headers`/
+`experimental.chat.system.transform` hooks). Both paths share one model loader.
+
 1. **OpenCode starts** → discovers `plugins/saia-plugin.ts` → loads `saia/saia.ts`
 2. **API key resolved** → env `SAIA_API_KEY`, `apiKeyCommand`, or `saia.json`
 3. **Models loaded** → memory cache hit (24 h TTL) or a live `/v1/models` fetch

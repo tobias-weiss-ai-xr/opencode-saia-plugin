@@ -10,7 +10,7 @@ PLUGIN_ROOT="$CONFIG_DIR/plugins"
 PLUGIN_DIR="$PLUGIN_ROOT/saia"
 BACKUP_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/saia/plugin-backups"
 REMOTE_URL="${SAIA_PLUGIN_REMOTE_URL:-https://codeberg.org/graphwiz-ai/opencode-saia-plugin}"
-CURRENT_VERSION="0.3.0"
+CURRENT_VERSION="0.4.0"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
