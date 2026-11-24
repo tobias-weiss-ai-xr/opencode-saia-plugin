@@ -17,14 +17,19 @@ export function displayLimits(value: unknown) {
 
   const limits = value as Record<string, unknown>
   const fields = [
-    ["m", limits.minute],
-    ["h", limits.hour],
-    ["d", limits.day],
-    ["mo", limits.month],
+    ["10s", limits.tenSeconds, limits.tenSecondsLimit],
+    ["h", limits.hour, limits.hourLimit],
+    ["d", limits.day, limits.dayLimit],
   ].filter(([, remaining]) => remaining !== null && remaining !== undefined && String(remaining) !== "")
 
   if (fields.length === 0) return ""
-  return fields.map(([unit, remaining]) => `${formatRemaining(remaining)}/${unit}`).join(" · ")
+  return fields
+    .map(([unit, remaining, limit]) =>
+      limit !== null && limit !== undefined && String(limit) !== ""
+        ? `${formatRemaining(remaining)}/${formatRemaining(limit)} ${unit}`
+        : `${formatRemaining(remaining)}/${unit}`,
+    )
+    .join(" · ")
 }
 
 const plugin: TuiPluginModule = {

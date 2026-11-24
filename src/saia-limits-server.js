@@ -45,12 +45,17 @@ function quotaHeader(response, name) {
 }
 
 function limitsFrom(response) {
+  // SAIA (academiccloud) exposes per-window counters as
+  // x-ratelimit-{limit,remaining,reset}-requests-<window> with windows
+  // 10s/hour/day. There is no minute or month window.
   const limits = {
-    minute: quotaHeader(response, "x-ratelimit-remaining-minute"),
-    hour: quotaHeader(response, "x-ratelimit-remaining-hour"),
-    day: quotaHeader(response, "x-ratelimit-remaining-day"),
-    month: quotaHeader(response, "x-ratelimit-remaining-month"),
-    resetSec: quotaHeader(response, "ratelimit-reset"),
+    tenSeconds: quotaHeader(response, "x-ratelimit-remaining-requests-10s"),
+    tenSecondsLimit: quotaHeader(response, "x-ratelimit-limit-requests-10s"),
+    hour: quotaHeader(response, "x-ratelimit-remaining-requests-hour"),
+    hourLimit: quotaHeader(response, "x-ratelimit-limit-requests-hour"),
+    day: quotaHeader(response, "x-ratelimit-remaining-requests-day"),
+    dayLimit: quotaHeader(response, "x-ratelimit-limit-requests-day"),
+    resetSec: quotaHeader(response, "x-ratelimit-reset-requests-10s"),
   }
 
   if (Object.values(limits).every((value) => value === null)) return
